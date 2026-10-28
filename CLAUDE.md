@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Taskboard: technical exam project. NestJS GraphQL API serves Next.js web client + Flutter client. Scope + acceptance criteria in `docs/REQUIREMENTS.md`. Run instructions in `README.md`.
+Taskboard: technical exam project. NestJS GraphQL API serves Next.js web client + Flutter client. Scope + acceptance criteria in `docs/REQUIREMENTS.md`. Visual tokens, layout, copy in `docs/DESIGN.md` (follow it; use `frontend-design` + `ui-ux-pro-max` skills for UI work). Run instructions in `README.md`.
 
 ## Working rules
 
@@ -20,14 +20,17 @@ Taskboard: technical exam project. NestJS GraphQL API serves Next.js web client 
   - `pnpm prisma migrate dev --name <name>`, `pnpm db:seed`
 - `web/`: Next.js 16 App Router, Apollo Client 4, Tailwind 4, Vitest + Testing Library.
   - `pnpm dev`, `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm codegen`
-- `mobile/`: Flutter 3.47, Riverpod 3, go_router, `graphql` package.
+- `mobile/`: Flutter 3.47, Riverpod 3, go_router, `graphql` package. iOS first: verify on iOS Simulator.
   - `flutter run`, `flutter test`, `flutter analyze`, `dart format lib test`
 - Local dev DB: `docker compose up -d db`.
 
 ## Gotchas
 
 - `api/schema.gql` generated on API boot, committed. After API schema change: boot API, then `pnpm codegen` in `web/`. Commit both.
-- Prisma client generated into `api/src/generated` (gitignored) by `postinstall`. After schema edit, run `pnpm prisma generate`.
+- Prisma client generated into `api/src/generated` (gitignored) by `postinstall`. Prisma 7 `migrate dev` no longer regenerates: run `pnpm prisma generate` after every schema edit.
+- Field resolvers use `findUnique` lookups; Prisma batches same-tick `findUnique` calls, so no DataLoader needed.
+- Subscriptions: `graphql-ws` `onConnect` verifies token (Bearer in `connectionParams` or `token` cookie on upgrade), stores `user` on context. Nest Apollo driver sets `req` to ws context object on subscriptions, so `GqlAuthGuard` checks `user` first.
+- Restarting API: kill leftover `node dist/main` too, else new process hits `EADDRINUSE` and old code keeps serving.
 - Next.js 16 renamed middleware to `proxy.ts`. Read `web/AGENTS.md` + docs in `web/node_modules/next/dist/docs/` before using Next APIs.
 - Apollo Client 4 hooks import from `@apollo/client/react`. Test mocks import from `@apollo/client/testing/react`.
 - pnpm 12 blocks dep build scripts. Allow in each app's `pnpm-workspace.yaml` under `allowBuilds`.
