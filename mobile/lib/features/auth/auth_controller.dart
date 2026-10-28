@@ -34,6 +34,11 @@ class AuthController extends AsyncNotifier<User?> {
   }
 
   Future<void> logout() async {
+    try {
+      await _repository.logout();
+    } catch (_) {
+      // The API only clears its web cookie; the local sign-out goes ahead.
+    }
     await _storage.clear();
     state = const AsyncData(null);
   }

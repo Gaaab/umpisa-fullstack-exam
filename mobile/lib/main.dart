@@ -3,4 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 
-void main() => runApp(const ProviderScope(child: TaskboardApp()));
+void main() => runApp(
+  // Screens offer "Try again"; silent auto-retries would hide errors behind
+  // a spinner for up to a minute.
+  ProviderScope(retry: (_, _) => null, child: const TaskboardApp()),
+);

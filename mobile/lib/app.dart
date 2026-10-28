@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router.dart';
+import 'core/theme.dart';
+
+final _theme = buildTheme();
 
 class TaskboardApp extends ConsumerWidget {
   const TaskboardApp({super.key});
@@ -10,7 +13,8 @@ class TaskboardApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
       title: 'Taskboard',
-      theme: ThemeData(colorSchemeSeed: Colors.indigo),
+      debugShowCheckedModeBanner: false,
+      theme: _theme,
       routerConfig: ref.watch(routerProvider),
     );
   }

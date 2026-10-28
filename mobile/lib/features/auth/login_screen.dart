@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../widgets/loading_button.dart';
+import '../tasks/task.dart';
 import 'auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -48,9 +49,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const _LaneMark(),
+                  const SizedBox(height: 20),
                   Text(
                     'Sign in to Taskboard',
-                    style: Theme.of(context).textTheme.headlineSmall,
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 24),
                   TextFormField(
@@ -95,6 +99,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The three lane colours as card tabs: the app's only brand mark.
+class _LaneMark extends StatelessWidget {
+  const _LaneMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (final status in TaskStatus.values) ...[
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: status.edge,
+              borderRadius: const BorderRadius.all(Radius.circular(3)),
+            ),
+            child: const SizedBox(width: 28, height: 6),
+          ),
+          const SizedBox(width: 6),
+        ],
+      ],
     );
   }
 }

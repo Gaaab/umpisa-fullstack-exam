@@ -45,6 +45,13 @@ class AuthRepository {
     );
   }
 
+  Future<void> logout() async {
+    final result = await _client.mutate(
+      MutationOptions(document: gql('mutation Logout { logout }')),
+    );
+    _unwrap(result);
+  }
+
   Future<User> me() async {
     final result = await _client.query(
       QueryOptions(
