@@ -11,6 +11,12 @@ export interface JwtPayload {
 
 export type AuthRequest = Request & { user?: JwtPayload };
 
+/** HTTP requests carry `req`; WebSocket subscriptions carry a verified `user`. */
+export interface GqlContext {
+  req?: AuthRequest;
+  user?: JwtPayload;
+}
+
 @InputType()
 export class LoginInput {
   @Field()

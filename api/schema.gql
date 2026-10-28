@@ -2,10 +2,47 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input AddCommentInput {
+  body: String!
+  taskId: ID!
+}
+
 type AuthPayload {
   accessToken: String!
   user: User!
 }
+
+type Board {
+  createdAt: DateTime!
+  id: ID!
+  name: String!
+  openTaskCount: Int!
+  owner: User!
+  tasks: [Task!]!
+}
+
+type Comment {
+  author: User!
+  body: String!
+  createdAt: DateTime!
+  id: ID!
+}
+
+input CreateBoardInput {
+  name: String!
+}
+
+input CreateTaskInput {
+  assigneeId: ID
+  boardId: ID!
+  description: String
+  title: String!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
 
 input LoginInput {
   email: String!
@@ -13,13 +50,65 @@ input LoginInput {
 }
 
 type Mutation {
+  addComment(input: AddCommentInput!): Comment!
+  createBoard(input: CreateBoardInput!): Board!
+  createTask(input: CreateTaskInput!): Task!
+  deleteBoard(id: ID!): ID!
+  deleteTask(id: ID!): ID!
   login(input: LoginInput!): AuthPayload!
   logout: Boolean!
+  updateBoard(input: UpdateBoardInput!): Board!
+  updateTask(input: UpdateTaskInput!): Task!
 }
 
 type Query {
+  board(id: ID!): Board!
+  boards: [Board!]!
   health: String!
   me: User!
+  myTasks: [Task!]!
+  task(id: ID!): Task!
+  users: [User!]!
+}
+
+type Subscription {
+  taskAssigned: TaskAssignment!
+}
+
+type Task {
+  assignee: User
+  board: Board!
+  comments: [Comment!]!
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  status: TaskStatus!
+  title: String!
+  updatedAt: DateTime!
+}
+
+type TaskAssignment {
+  assignedBy: User!
+  task: Task!
+}
+
+enum TaskStatus {
+  DONE
+  IN_PROGRESS
+  TODO
+}
+
+input UpdateBoardInput {
+  id: ID!
+  name: String!
+}
+
+input UpdateTaskInput {
+  assigneeId: ID
+  description: String
+  id: ID!
+  status: TaskStatus
+  title: String
 }
 
 type User {

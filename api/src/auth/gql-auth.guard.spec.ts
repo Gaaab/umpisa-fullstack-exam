@@ -9,9 +9,9 @@ describe('GqlAuthGuard', () => {
   const token = jwt.sign({ sub: 'u1', email: 'alice@example.com' });
 
   // GqlExecutionContext reads the GraphQL context from the third resolver arg.
-  const contextFor = (req: object) =>
+  const contextFor = (req: object, extra: object = {}) =>
     ({
-      getArgs: () => [{}, {}, { req }, {}],
+      getArgs: () => [{}, {}, { req, ...extra }, {}],
       getClass: () => null,
       getHandler: () => null,
       getType: () => 'graphql',
@@ -39,5 +39,10 @@ describe('GqlAuthGuard', () => {
     expect(() => guard.canActivate(contextFor(req))).toThrow(
       UnauthorizedException,
     );
+  });
+
+  it('accepts a subscription context verified in onConnect', () => {
+    const ctx = contextFor({}, { user: { sub: 'u1', email: 'a@b.c' } });
+    expect(guard.canActivate(ctx)).toBe(true);
   });
 });
