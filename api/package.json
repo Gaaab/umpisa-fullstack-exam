@@ -20,7 +20,9 @@
     "postinstall": "prisma generate",
     "typecheck": "tsc --noEmit",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "nest build && node dist/seed.js"
+    "db:seed": "nest build && node dist/seed.js",
+    "db:reset": "prisma migrate reset --force && pnpm db:seed",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@apollo/server": "^5.5.1",

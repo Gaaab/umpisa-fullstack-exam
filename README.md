@@ -4,6 +4,7 @@ A shared task board for small teams, built for the Full Stack Developer technica
 
 - [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md): workflows, acceptance criteria, API surface
 - [docs/DESIGN.md](docs/DESIGN.md): visual direction, tokens, layouts, copy
+- [docs/CHECKLIST.md](docs/CHECKLIST.md): setup, environment variables, seed data, rehearsal and demo checklist
 
 ## Quick start
 
@@ -96,7 +97,7 @@ docker compose up -d db          # Postgres only
 cd api
 pnpm install
 pnpm prisma migrate dev          # apply migrations
-pnpm db:seed                     # demo users, boards, tasks
+pnpm db:seed                     # demo users, boards, tasks (pnpm db:reset to wipe)
 pnpm start:dev                   # http://localhost:4000/graphql
 
 cd web
@@ -119,11 +120,17 @@ cd mobile && flutter analyze && flutter test
 
 CI runs the same checks on every push (`.github/workflows/ci.yml`).
 
-The mobile integration test drives the real app on a simulator against the running API. It signs in, adds and moves a task, comments, checks My tasks, then cleans up:
+## Rehearsal
+
+These run against a live stack. Each creates its own data and cleans it up.
 
 ```bash
-cd mobile && flutter test integration_test/app_test.dart -d <simulator-id>
+cd api && pnpm smoke                       # API: 13 checks incl. live notifications
+cd web && pnpm rehearse                    # Web: 21 browser steps as Alice and Bob (needs Chrome)
+cd mobile && flutter test integration_test/app_test.dart -d <simulator-id>   # iOS app on a simulator
 ```
+
+Set `WEB_URL` or `API_URL` if you changed the ports. See [docs/CHECKLIST.md](docs/CHECKLIST.md) for the full pre-demo checklist.
 
 ## Exam requirements
 

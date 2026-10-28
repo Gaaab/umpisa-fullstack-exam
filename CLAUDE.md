@@ -17,13 +17,17 @@ Taskboard: technical exam project. NestJS GraphQL API serves Next.js web client 
 
 - `api/`: NestJS 12 (ESM, `.js` import suffixes), code-first GraphQL, Prisma 7, Vitest, oxlint.
   - `pnpm start:dev`, `pnpm test`, `pnpm lint`, `pnpm typecheck`
-  - `pnpm prisma migrate dev --name <name>`, `pnpm db:seed`
+  - `pnpm prisma migrate dev --name <name>`, `pnpm db:seed`, `pnpm db:reset` (Prisma blocks it for AI agents: ask user)
+  - `pnpm smoke`: live API check (needs running seeded API)
 - `web/`: Next.js 16 App Router, Apollo Client 4, Tailwind 4, Vitest + Testing Library.
   - `pnpm dev`, `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm codegen`
+  - `pnpm rehearse`: browser run of all workflows via Chrome (`WEB_URL`, default :3000)
 - `mobile/`: Flutter 3.47, Riverpod 3, go_router, `graphql` package. Native only (iOS first, Android); no Flutter web, not in Docker. Verify on iOS Simulator.
   - `flutter run`, `flutter test`, `flutter analyze`, `dart format lib test integration_test`
   - `flutter test integration_test/app_test.dart -d <simulator>`: drives real app against local API (manual, not CI)
 - Local dev DB: `docker compose up -d db`.
+- Setup, env vars, seed data, rehearsal steps: `docs/CHECKLIST.md`. Keep it in sync when commands or seed change.
+- API loads optional `api/.env` (`process.loadEnvFile`); web reads `web/.env.local`.
 
 ## Gotchas
 
