@@ -11,7 +11,7 @@ The brief asks for an app with a login page plus 2 workflows or 4 screens (login
 Taskboard is a shared task board for a small team. Every signed-in user sees every board. Any task can be assigned to any teammate. The same features ship in two clients:
 
 - **Web**: Next.js (App Router)
-- **Mobile**: Flutter (Android, iOS, web)
+- **Mobile**: Flutter, native iOS (primary) and Android
 
 Both clients talk to one NestJS GraphQL API backed by PostgreSQL.
 
@@ -52,7 +52,8 @@ Both clients talk to one NestJS GraphQL API backed by PostgreSQL.
 - **W2.2** As a user, I move a task between statuses.
   - On the board, moving a task updates its column immediately.
   - If the server rejects the move, the task returns to its column.
-- **W2.3** As a user, I open a task to edit its title, description, status and assignee.
+- **W2.3** As a user, I open a task to edit its title, description, status and assignee, or to delete it.
+  - Deleting asks for confirmation and returns to the task's board.
 - **W2.4** As a user, I comment on a task.
   - Comments show the author and time, oldest first.
 - **W2.5** As a user, I see all tasks assigned to me across boards (My tasks).
@@ -67,14 +68,16 @@ Both clients talk to one NestJS GraphQL API backed by PostgreSQL.
 
 ## GraphQL API
 
-- Done: `health`, `login`, `logout`, `me`
-- Planned:
-  - Queries: `boards`, `board(id)`, `task(id)`, `myTasks`, `users`
-  - Mutations: `createBoard`, `updateBoard`, `deleteBoard`, `createTask`, `updateTask`, `addComment`
+- Queries: `health`, `me`, `users`, `boards`, `board(id)`, `task(id)`, `myTasks`
+- Mutations: `login`, `logout`, `createBoard`, `updateBoard`, `deleteBoard`, `createTask`, `updateTask`, `deleteTask`, `addComment`
+- Subscription: `taskAssigned`, which reaches only the new assignee and only when someone else assigns the task.
+- Inputs are trimmed and validated (`class-validator`). Only the board owner can rename or delete a board.
+
+Both clients use the same operation names: Login, Logout, Me, Boards, Board, CreateBoard, UpdateBoard, DeleteBoard, Task, MyTasks, Users, CreateTask, UpdateTask, DeleteTask, AddComment, TaskAssigned.
 
 ## Non-functional
 
-- `docker compose up --build` starts the database, API, web and Flutter web with no extra setup.
+- `docker compose up --build` starts the database, API and web client with no extra setup. The mobile app runs from the Flutter SDK on the iOS Simulator or an Android emulator against that API.
 - Unit tests in all three apps. CI runs lint, typecheck/analyze and tests on every push.
 - Linting uses each tool's default config.
 - Web components are built from a small shared UI kit. Flutter screens share reusable widgets.
@@ -85,7 +88,12 @@ Both clients talk to one NestJS GraphQL API backed by PostgreSQL.
 - Refresh tokens
 - End-to-end tests
 - Page analytics
+- OS-level push through APNs or FCM (notifications are in-app and browser only)
+- A Flutter web build (the mobile client is native only)
 
-## Stretch
+## Notifications (nice to have)
 
-- Live board updates through GraphQL subscriptions, with a browser or OS notification when a task is assigned to you.
+- **N1** When someone else assigns me a task, I am notified live through the `taskAssigned` GraphQL subscription.
+  - Web shows a toast linking to the task. If I enabled notifications and the tab is in the background, it also shows a browser notification.
+  - Mobile shows a banner with a "View" action that opens the task.
+  - My tasks refreshes on its own.

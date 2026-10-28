@@ -20,8 +20,9 @@ Taskboard: technical exam project. NestJS GraphQL API serves Next.js web client 
   - `pnpm prisma migrate dev --name <name>`, `pnpm db:seed`
 - `web/`: Next.js 16 App Router, Apollo Client 4, Tailwind 4, Vitest + Testing Library.
   - `pnpm dev`, `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm codegen`
-- `mobile/`: Flutter 3.47, Riverpod 3, go_router, `graphql` package. iOS first: verify on iOS Simulator.
-  - `flutter run`, `flutter test`, `flutter analyze`, `dart format lib test`
+- `mobile/`: Flutter 3.47, Riverpod 3, go_router, `graphql` package. Native only (iOS first, Android); no Flutter web, not in Docker. Verify on iOS Simulator.
+  - `flutter run`, `flutter test`, `flutter analyze`, `dart format lib test integration_test`
+  - `flutter test integration_test/app_test.dart -d <simulator>`: drives real app against local API (manual, not CI)
 - Local dev DB: `docker compose up -d db`.
 
 ## Gotchas
@@ -35,5 +36,5 @@ Taskboard: technical exam project. NestJS GraphQL API serves Next.js web client 
 - Apollo Client 4 hooks import from `@apollo/client/react`. Test mocks import from `@apollo/client/testing/react`.
 - pnpm 12 blocks dep build scripts. Allow in each app's `pnpm-workspace.yaml` under `allowBuilds`.
 - Web `/graphql` rewrite destination resolved at build time from `API_URL` build arg.
-- Flutter web gets API URL at compile time via `--dart-define=API_URL`. Android emulator needs `http://10.0.2.2:4000/graphql`.
-- Flutter Dockerfile clones Flutter at local SDK tag, since prebuilt images lag. Bump both together.
+- Flutter gets API URL at compile time via `--dart-define=API_URL` (default `http://localhost:4000/graphql`, fine for iOS Simulator). Android emulator needs `http://10.0.2.2:4000/graphql`.
+- CI pins Flutter `3.47.8` in `.github/workflows/ci.yml`. Bump with local SDK.
