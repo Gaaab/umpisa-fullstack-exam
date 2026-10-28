@@ -8,6 +8,9 @@ COPY . .
 # Rewrites are resolved at build time, so the API address is a build arg.
 ARG API_URL=http://api:4000
 ENV API_URL=$API_URL
+# The browser opens the subscription socket, so this must be a public URL.
+ARG NEXT_PUBLIC_WS_URL=ws://localhost:4000/graphql
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
 RUN pnpm build
 
 FROM node:24-alpine

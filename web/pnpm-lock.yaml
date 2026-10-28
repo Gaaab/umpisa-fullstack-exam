@@ -172,6 +172,9 @@ importers:
       graphql:
         specifier: ^16.14.2
         version: 16.14.2
+      graphql-ws:
+        specifier: ^6.4.1
+        version: 6.4.1(graphql@16.14.2)(ws@8.22.0)
       next:
         specifier: 16.4.3
         version: 16.4.3(@babel/core@7.29.7(supports-color@7.2.0))(@types/node@24.19.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

@@ -4,7 +4,17 @@ const config: CodegenConfig = {
   schema: "../api/schema.gql",
   documents: ["src/**/*.{ts,tsx}", "!src/gql/**"],
   generates: {
-    "src/gql/": { preset: "client", config: { useTypeImports: true } },
+    "src/gql/": {
+      preset: "client",
+      // Fragments only share field lists here, so skip masking.
+      presetConfig: { fragmentMasking: false },
+      config: {
+        useTypeImports: true,
+        nonOptionalTypename: true,
+        skipTypeNameForRoot: true,
+        scalars: { DateTime: "string" },
+      },
+    },
   },
 };
 

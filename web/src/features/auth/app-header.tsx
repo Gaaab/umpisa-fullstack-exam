@@ -1,10 +1,46 @@
 "use client";
 
 import { useMutation, useQuery } from "@apollo/client/react";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import Link from "next/link";
+import { useRouter, useSelectedLayoutSegment } from "next/navigation";
+import { Suspense, useEffect } from "react";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { NotificationsToggle } from "@/features/notifications/notifications-toggle";
 import { LogoutMutation, MeQuery } from "./graphql";
+
+const links = [
+  { href: "/boards", label: "Boards", segment: "boards" },
+  { href: "/my-tasks", label: "My tasks", segment: "my-tasks" },
+];
+
+function Nav({ active }: { active?: string | null }) {
+  return (
+    <nav aria-label="Main" className="flex self-stretch">
+      {links.map((link) => {
+        const current = link.segment === active;
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            aria-current={current ? "page" : undefined}
+            className={`flex items-center border-b-2 px-2 font-semibold whitespace-nowrap transition-colors sm:px-3 ${
+              current
+                ? "border-cobalt text-ink"
+                : "border-transparent text-graphite hover:text-ink"
+            }`}
+          >
+            {link.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function ActiveNav() {
+  return <Nav active={useSelectedLayoutSegment()} />;
+}
 
 export function AppHeader() {
   const router = useRouter();
@@ -24,13 +60,23 @@ export function AppHeader() {
   }, [error]);
 
   return (
-    <header className="flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-3">
-      <span className="font-semibold">Taskboard</span>
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-zinc-600">{data?.me.name}</span>
-        <Button variant="secondary" onClick={signOut}>
-          Sign out
-        </Button>
+    <header className="border-b border-line bg-paper">
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 sm:gap-6 sm:px-6">
+        {/* Phones need the room for nav; the Boards tab covers the same link. */}
+        <Link href="/boards" className="hidden font-bold sm:inline">
+          Taskboard
+        </Link>
+        {/* Dynamic routes resolve the active segment at request time. */}
+        <Suspense fallback={<Nav />}>
+          <ActiveNav />
+        </Suspense>
+        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          <NotificationsToggle />
+          {data && <Avatar name={data.me.name} size="md" />}
+          <Button variant="ghost" size="sm" onClick={signOut}>
+            Sign out
+          </Button>
+        </div>
       </div>
     </header>
   );

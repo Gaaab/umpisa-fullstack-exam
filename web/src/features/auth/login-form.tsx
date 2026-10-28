@@ -2,7 +2,7 @@
 
 import { useMutation } from "@apollo/client/react";
 import { useRouter } from "next/navigation";
-import type { FormEvent } from "react";
+import type { SubmitEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LoginMutation } from "./graphql";
@@ -11,7 +11,7 @@ export function LoginForm() {
   const router = useRouter();
   const [login, { loading, error }] = useMutation(LoginMutation);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     try {
@@ -40,7 +40,7 @@ export function LoginForm() {
         required
       />
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-meta text-brick">
           {error.message}
         </p>
       )}
