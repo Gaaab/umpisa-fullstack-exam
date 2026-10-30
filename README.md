@@ -5,6 +5,7 @@ A shared task board for small teams, built for the Full Stack Developer technica
 - [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md): workflows, acceptance criteria, API surface
 - [docs/DESIGN.md](docs/DESIGN.md): visual direction, tokens, layouts, copy
 - [docs/CHECKLIST.md](docs/CHECKLIST.md): setup, environment variables, seed data, rehearsal and demo checklist
+- [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md): demo order, code tour, decisions and trade-offs
 
 ## Quick start
 
