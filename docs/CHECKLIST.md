@@ -80,7 +80,8 @@ With the stack running and seeded:
 - [ ] CI is green on the latest commit (`gh run list -L 1`)
 - [ ] API: `cd api && pnpm smoke` runs 13 checks, including live notifications and WebSocket auth
 - [ ] Web: `cd web && WEB_URL=http://localhost:3000 pnpm rehearse` runs 21 browser steps as Alice and Bob, with no console errors
-- [ ] iOS: `cd mobile && flutter test integration_test/app_test.dart -d <simulator id>` signs in, adds, moves, comments, checks My tasks and cleans up. Find the id with `xcrun simctl list devices booted`.
+- [ ] iOS: `cd mobile && flutter test integration_test/app_test.dart -d <simulator id>` runs the whole demo in 12 steps. Alice drives the app; Bob, acting through the API, hands her a task, which must arrive live. Find the id with `xcrun simctl list devices booted`.
+- [ ] Optional: record the iOS run with `xcrun simctl io <simulator id> recordVideo demo.mov` (stop with Ctrl+C)
 - [ ] Unit tests: `pnpm test` in `api/` and `web/`, `flutter test` in `mobile/`
 
 Every script creates its own data and deletes it at the end.

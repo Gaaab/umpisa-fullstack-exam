@@ -128,7 +128,7 @@ These run against a live stack. Each creates its own data and cleans it up.
 ```bash
 cd api && pnpm smoke                       # API: 13 checks incl. live notifications
 cd web && pnpm rehearse                    # Web: 21 browser steps as Alice and Bob (needs Chrome)
-cd mobile && flutter test integration_test/app_test.dart -d <simulator-id>   # iOS app on a simulator
+cd mobile && flutter test integration_test/app_test.dart -d <simulator-id>   # iOS: full 12-step demo incl. a live hand-off from Bob
 ```
 
 Set `WEB_URL` or `API_URL` if you changed the ports. See [docs/CHECKLIST.md](docs/CHECKLIST.md) for the full pre-demo checklist.

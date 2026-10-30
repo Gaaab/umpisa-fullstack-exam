@@ -5,7 +5,7 @@ A checklist for presenting Taskboard in a technical interview: what to prepare, 
 ## Before the call
 
 - [ ] Fresh data: `docker compose down -v && docker compose up --build`
-- [ ] CI is green, and `pnpm smoke` (api) and `pnpm rehearse` (web) pass
+- [ ] CI is green, and `pnpm smoke` (api), `pnpm rehearse` (web) and the iOS integration test all pass
 - [ ] iOS Simulator booted, and `cd mobile && flutter run` shows the sign-in screen
 - [ ] Two browser profiles open, one signed in as Alice and one as Bob
 - [ ] Editor open on the files in the code tour below
@@ -62,5 +62,5 @@ A checklist for presenting Taskboard in a technical interview: what to prepare, 
 
 ## Numbers
 
-- Unit tests: API 22, web 25, mobile 32. One integration test runs on the iOS Simulator.
-- Rehearsals: the API smoke test has 13 checks and the web browser run has 21 steps.
+- Unit tests: API 22, web 25, mobile 32.
+- Rehearsals: the API smoke test has 13 checks, the web browser run has 21 steps, and the iOS Simulator demo has 12 steps.
