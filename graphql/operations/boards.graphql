@@ -1,0 +1,30 @@
+query Boards {
+  boards {
+    ...BoardFields
+  }
+}
+
+query Board($id: ID!) {
+  board(id: $id) {
+    ...BoardFields
+    tasks {
+      ...TaskFields
+    }
+  }
+}
+
+mutation CreateBoard($input: CreateBoardInput!) {
+  createBoard(input: $input) {
+    ...BoardFields
+  }
+}
+
+mutation UpdateBoard($input: UpdateBoardInput!) {
+  updateBoard(input: $input) {
+    ...BoardFields
+  }
+}
+
+mutation DeleteBoard($id: ID!) {
+  deleteBoard(id: $id)
+}

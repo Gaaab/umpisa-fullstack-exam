@@ -1,13 +1,10 @@
 import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { MeQuery } from "@/features/auth/graphql";
-import { UpdateTaskMutation } from "@/features/tasks/graphql";
 import { TASK_DRAG_TYPE } from "@/features/tasks/task-card";
-import type { TaskStatus } from "@/gql/graphql";
+import { BoardDocument, MeDocument, UpdateTaskDocument, type TaskStatus } from "@/gql/graphql";
 import { alice, bob, renderWithApollo } from "@/test/render";
 import { BoardView } from "./board-view";
-import { BoardQuery } from "./graphql";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
@@ -17,23 +14,25 @@ const task = (status: TaskStatus) => ({
   title: "Write launch copy",
   description: null,
   status,
+  createdAt: "2026-10-27T10:00:00.000Z",
   updatedAt: "2026-10-28T10:00:00.000Z",
   assignee: bob,
 });
 
 const baseMocks = [
   {
-    request: { query: MeQuery },
-    result: { data: { me: { ...alice, email: "alice@example.com" } } },
+    request: { query: MeDocument },
+    result: { data: { me: alice } },
   },
   {
-    request: { query: BoardQuery, variables: { id: "b1" } },
+    request: { query: BoardDocument, variables: { id: "b1" } },
     result: {
       data: {
         board: {
           __typename: "Board",
           id: "b1",
           name: "Website relaunch",
+          openTaskCount: 1,
           owner: alice,
           tasks: [task("TODO")],
         },
@@ -43,7 +42,7 @@ const baseMocks = [
 ];
 
 const moveRequest = {
-  query: UpdateTaskMutation,
+  query: UpdateTaskDocument,
   variables: { input: { id: "t1", status: "IN_PROGRESS" } },
 };
 

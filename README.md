@@ -78,6 +78,7 @@ Both run on GraphQL subscriptions over WebSocket.
 
 ```
 api/      NestJS GraphQL API: auth, boards, tasks, users; Prisma schema, migrations, seed
+graphql/  The one place every client GraphQL operation and fragment is written
 web/      Next.js client: src/app routes, src/features/*, src/components/ui
 mobile/   Flutter client: lib/core, lib/features/*, lib/widgets, integration_test
 docs/     Requirements and design spec
@@ -85,6 +86,7 @@ docs/     Requirements and design spec
 
 ## How it works
 
+- **GraphQL contract.** The API's code generates `api/schema.gql`. Every operation either client sends lives in `graphql/operations/*.graphql`. Running `pnpm codegen` in `web/` validates those operations against the schema, then writes typed documents for web (`web/src/gql`) and Dart constants for mobile (`mobile/lib/core/graphql/operations.g.dart`). CI fails if the generated files drift.
 - **Auth.** `login` returns a JWT and also sets it as an httpOnly cookie.
   - The web app proxies `/graphql` through a Next.js rewrite, so the cookie is same-origin and never readable from JavaScript. `src/proxy.ts` redirects between `/login` and protected routes.
   - The mobile app stores the token in the iOS Keychain or Android Keystore and sends `Authorization: Bearer`. A `go_router` redirect guards its routes.
@@ -111,7 +113,7 @@ pnpm start:dev                   # http://localhost:4000/graphql
 cd web
 pnpm install
 pnpm dev                         # http://localhost:3000
-pnpm codegen                     # after API schema changes
+pnpm codegen                     # after editing graphql/operations or the API schema
 
 cd mobile
 flutter pub get

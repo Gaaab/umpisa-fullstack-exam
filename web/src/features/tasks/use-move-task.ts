@@ -2,13 +2,12 @@
 
 import { useMutation } from "@apollo/client/react";
 import { useToast } from "@/components/ui/toast";
-import type { TaskFieldsFragment, TaskStatus } from "@/gql/graphql";
+import { UpdateTaskDocument, type TaskFieldsFragment, type TaskStatus } from "@/gql/graphql";
 import { statusLabel } from "@/lib/status";
-import { UpdateTaskMutation } from "./graphql";
 
 // The optimistic write moves the card at once; Apollo rolls it back on error.
 export function useMoveTask() {
-  const [updateTask] = useMutation(UpdateTaskMutation);
+  const [updateTask] = useMutation(UpdateTaskDocument);
   const toast = useToast();
 
   return (task: TaskFieldsFragment, status: TaskStatus) => {

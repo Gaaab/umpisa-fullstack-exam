@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import type { SubmitEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LoginMutation } from "./graphql";
+import { LoginDocument } from "@/gql/graphql";
 
 export function LoginForm() {
   const router = useRouter();
-  const [login, { loading, error }] = useMutation(LoginMutation);
+  const [login, { loading, error }] = useMutation(LoginDocument);
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();

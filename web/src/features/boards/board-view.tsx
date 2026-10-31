@@ -7,8 +7,13 @@ import { Button } from "@/components/ui/button";
 import { ConfirmModal, Modal } from "@/components/ui/modal";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
-import { MeQuery } from "@/features/auth/graphql";
-import type { TaskStatus } from "@/gql/graphql";
+import {
+  BoardDocument,
+  DeleteBoardDocument,
+  MeDocument,
+  UpdateBoardDocument,
+  type TaskStatus,
+} from "@/gql/graphql";
 import { deletingHere } from "@/features/live-sync/deleting-here";
 import { AddTaskModal } from "@/features/tasks/add-task-modal";
 import { TaskCard } from "@/features/tasks/task-card";
@@ -16,20 +21,19 @@ import { useMoveTask } from "@/features/tasks/use-move-task";
 import { STATUSES } from "@/lib/status";
 import { BoardNameForm } from "./board-name-form";
 import { removeBoardFromCache } from "./cache";
-import { BoardQuery, DeleteBoardMutation, UpdateBoardMutation } from "./graphql";
 import { Lane } from "./lane";
 
 type Dialog = "rename" | "delete" | "add-task" | null;
 
 export function BoardView({ id }: { id: string }) {
-  const { data, error, refetch } = useQuery(BoardQuery, { variables: { id } });
-  const { data: me } = useQuery(MeQuery, { fetchPolicy: "cache-first" });
+  const { data, error, refetch } = useQuery(BoardDocument, { variables: { id } });
+  const { data: me } = useQuery(MeDocument, { fetchPolicy: "cache-first" });
   const [dialog, setDialog] = useState<Dialog>(null);
   const moveTask = useMoveTask();
   const router = useRouter();
   const toast = useToast();
-  const [renameBoard] = useMutation(UpdateBoardMutation);
-  const [deleteBoard, { loading: deleting }] = useMutation(DeleteBoardMutation, {
+  const [renameBoard] = useMutation(UpdateBoardDocument);
+  const [deleteBoard, { loading: deleting }] = useMutation(DeleteBoardDocument, {
     update: (cache) => removeBoardFromCache(cache, id),
   });
 

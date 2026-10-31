@@ -7,7 +7,7 @@ import { Suspense, useEffect } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { NotificationsToggle } from "@/features/notifications/notifications-toggle";
-import { LogoutMutation, MeQuery } from "./graphql";
+import { LogoutDocument, MeDocument } from "@/gql/graphql";
 
 const links = [
   { href: "/boards", label: "Boards", segment: "boards" },
@@ -44,8 +44,8 @@ function ActiveNav() {
 
 export function AppHeader() {
   const router = useRouter();
-  const { data, error } = useQuery(MeQuery);
-  const [logout, { client }] = useMutation(LogoutMutation);
+  const { data, error } = useQuery(MeDocument);
+  const [logout, { client }] = useMutation(LogoutDocument);
 
   async function signOut() {
     await logout();

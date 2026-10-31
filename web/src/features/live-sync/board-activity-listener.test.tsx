@@ -1,12 +1,10 @@
 import { screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BoardsQuery } from "@/features/boards/graphql";
 import { BoardsView } from "@/features/boards/boards-view";
-import type { BoardEventType } from "@/gql/graphql";
+import { BoardActivityDocument, BoardsDocument, type BoardEventType } from "@/gql/graphql";
 import { alice, renderWithApollo } from "@/test/render";
 import { BoardActivityListener } from "./board-activity-listener";
 import { deletingHere } from "./deleting-here";
-import { BoardActivitySubscription } from "./graphql";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, push: vi.fn() }) }));
@@ -20,13 +18,13 @@ const board = (id: string, name: string) => ({
 });
 
 const boardsMock = (...boards: ReturnType<typeof board>[]) => ({
-  request: { query: BoardsQuery },
+  request: { query: BoardsDocument },
   result: { data: { boards } },
 });
 
 // Arrives after the initial queries settle.
 const event = (type: BoardEventType, boardId: string, taskId: string | null = null) => ({
-  request: { query: BoardActivitySubscription },
+  request: { query: BoardActivityDocument },
   delay: 100,
   result: { data: { boardActivity: { __typename: "BoardEvent", type, boardId, taskId } } },
 });

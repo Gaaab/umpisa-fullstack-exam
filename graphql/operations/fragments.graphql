@@ -1,0 +1,36 @@
+# Field sets shared by both clients. Each selects what web and mobile parse.
+fragment UserFields on User {
+  id
+  name
+  email
+}
+
+fragment BoardFields on Board {
+  id
+  name
+  openTaskCount
+  owner {
+    ...UserFields
+  }
+}
+
+fragment TaskFields on Task {
+  id
+  title
+  description
+  status
+  createdAt
+  updatedAt
+  assignee {
+    ...UserFields
+  }
+}
+
+fragment CommentFields on Comment {
+  id
+  body
+  createdAt
+  author {
+    ...UserFields
+  }
+}

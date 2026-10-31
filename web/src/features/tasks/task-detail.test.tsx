@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { alice, bob, renderWithApollo } from "@/test/render";
-import { AddCommentMutation, TaskQuery, UsersQuery } from "./graphql";
+import { AddCommentDocument, TaskDocument, UsersDocument } from "@/gql/graphql";
 import { TaskDetail } from "./task-detail";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
@@ -30,16 +30,16 @@ const task = {
 };
 
 const taskMock = (data: typeof task) => ({
-  request: { query: TaskQuery, variables: { id: "t1" } },
+  request: { query: TaskDocument, variables: { id: "t1" } },
   result: { data: { task: data } },
 });
 
 const mocks = [
   taskMock(task),
-  { request: { query: UsersQuery }, result: { data: { users: [alice, bob] } } },
+  { request: { query: UsersDocument }, result: { data: { users: [alice, bob] } } },
   {
     request: {
-      query: AddCommentMutation,
+      query: AddCommentDocument,
       variables: { input: { taskId: "t1", body: "Looks good to me" } },
     },
     result: { data: { addComment: comment("c2", "Looks good to me", alice) } },

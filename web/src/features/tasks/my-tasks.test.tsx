@@ -1,8 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { TaskStatus } from "@/gql/graphql";
+import { MyTasksDocument, type TaskStatus } from "@/gql/graphql";
 import { renderWithApollo } from "@/test/render";
-import { MyTasksQuery } from "./graphql";
 import { MyTasks } from "./my-tasks";
 
 const task = (id: string, title: string, status: TaskStatus) => ({
@@ -14,7 +13,7 @@ const task = (id: string, title: string, status: TaskStatus) => ({
 });
 
 const myTasksMock = (myTasks: ReturnType<typeof task>[]) => ({
-  request: { query: MyTasksQuery },
+  request: { query: MyTasksDocument },
   result: { data: { myTasks } },
 });
 

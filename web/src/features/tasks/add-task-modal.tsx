@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { BoardQuery } from "@/features/boards/graphql";
-import { CreateTaskMutation, UsersQuery } from "./graphql";
+import { BoardDocument, CreateTaskDocument, UsersDocument } from "@/gql/graphql";
 
 export const TASK_TITLE_MAX = 120;
 
@@ -22,13 +21,13 @@ export function AddTaskModal({ boardId, open, onClose }: AddTaskModalProps) {
 }
 
 function AddTaskForm({ boardId, onDone }: { boardId: string; onDone: () => void }) {
-  const { data: users } = useQuery(UsersQuery, { fetchPolicy: "cache-first" });
+  const { data: users } = useQuery(UsersDocument, { fetchPolicy: "cache-first" });
   const [error, setError] = useState<string>();
   const toast = useToast();
-  const [createTask, { loading }] = useMutation(CreateTaskMutation, {
+  const [createTask, { loading }] = useMutation(CreateTaskDocument, {
     update(cache, { data }) {
       if (!data) return;
-      cache.updateQuery({ query: BoardQuery, variables: { id: boardId } }, (prev) =>
+      cache.updateQuery({ query: BoardDocument, variables: { id: boardId } }, (prev) =>
         prev ? { board: { ...prev.board, tasks: [...prev.board.tasks, data.createTask] } } : prev,
       );
       if (data.createTask.assignee) cache.evict({ id: "ROOT_QUERY", fieldName: "myTasks" });

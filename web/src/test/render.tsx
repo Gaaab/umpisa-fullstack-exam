@@ -12,5 +12,12 @@ export function renderWithApollo(ui: ReactElement, mocks: MockLink.MockedRespons
   );
 }
 
-export const alice = { __typename: "User" as const, id: "u1", name: "Alice Santos" };
-export const bob = { __typename: "User" as const, id: "u2", name: "Bob Reyes" };
+const user = (id: string, name: string, email: string) => ({
+  __typename: "User" as const,
+  id,
+  name,
+  email,
+});
+
+export const alice = user("u1", "Alice Santos", "alice@example.com");
+export const bob = user("u2", "Bob Reyes", "bob@example.com");

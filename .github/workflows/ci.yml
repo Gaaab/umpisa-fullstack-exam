@@ -23,6 +23,12 @@ jobs:
       # Corepack installs the pnpm version pinned in package.json.
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
+      # Generated clients must match graphql/operations and api/schema.gql.
+      - if: matrix.app == 'web'
+        run: |
+          pnpm codegen
+          git status --porcelain -- src/gql ../mobile/lib/core/graphql
+          test -z "$(git status --porcelain -- src/gql ../mobile/lib/core/graphql)"
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test

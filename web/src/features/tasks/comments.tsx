@@ -5,9 +5,8 @@ import { useId, useState, type SubmitEvent } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
-import type { TaskQuery } from "@/gql/graphql";
+import { AddCommentDocument, TaskDocument, type TaskQuery } from "@/gql/graphql";
 import { formatDate, timeAgo } from "@/lib/format";
-import { AddCommentMutation, TaskQuery as TaskDocument } from "./graphql";
 
 type CommentsProps = { taskId: string; comments: TaskQuery["task"]["comments"] };
 
@@ -15,7 +14,7 @@ export function Comments({ taskId, comments }: CommentsProps) {
   const headingId = useId();
   const [body, setBody] = useState("");
   const [error, setError] = useState<string>();
-  const [addComment, { loading }] = useMutation(AddCommentMutation, {
+  const [addComment, { loading }] = useMutation(AddCommentDocument, {
     update(cache, { data }) {
       if (!data) return;
       cache.updateQuery({ query: TaskDocument, variables: { id: taskId } }, (prev) =>

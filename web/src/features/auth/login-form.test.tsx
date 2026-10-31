@@ -3,7 +3,7 @@ import { MockedProvider } from "@apollo/client/testing/react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { LoginMutation } from "./graphql";
+import { LoginDocument } from "@/gql/graphql";
 import { LoginForm } from "./login-form";
 
 const replace = vi.fn();
@@ -29,12 +29,12 @@ async function submit() {
 describe("LoginForm", () => {
   it("redirects to boards after a successful login", async () => {
     renderForm({
-      request: { query: LoginMutation, variables: { input } },
+      request: { query: LoginDocument, variables: { input } },
       result: {
         data: {
           login: {
             __typename: "AuthPayload",
-            user: { __typename: "User", id: "u1", name: "Alice" },
+            user: { __typename: "User", id: "u1", name: "Alice", email: input.email },
           },
         },
       },
@@ -45,7 +45,7 @@ describe("LoginForm", () => {
 
   it("shows the API error on bad credentials", async () => {
     renderForm({
-      request: { query: LoginMutation, variables: { input } },
+      request: { query: LoginDocument, variables: { input } },
       error: new Error("Invalid email or password"),
     });
     await submit();

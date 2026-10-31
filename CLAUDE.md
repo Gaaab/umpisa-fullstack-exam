@@ -8,7 +8,7 @@ Taskboard: technical exam project. NestJS GraphQL API serves Next.js web client 
 - Exam, not product. No over-engineering. No layers, abstractions, shared packages or deps current feature not need.
 - Write optimized, lean code. Flutter: `const` widgets, `ref.watch(provider.select(...))` to limit rebuilds. Web: keep client bundles small. No premature perf work.
 - Comments only where "why" not obvious. Max 1-2 short lines. No docblocks restating code.
-- Keep feature parity: every workflow ships in web + mobile with same GraphQL operation names.
+- Keep feature parity: every workflow ships in web + mobile using the shared operations in `graphql/operations`.
 - Every feature adds unit tests in app it touches.
 - Commit with Conventional Commits (`feat(api): ...`, `fix(web): ...`), directly on `main`.
 - Must run out of box: after changes, `docker compose up --build` must still work.
@@ -31,7 +31,9 @@ Taskboard: technical exam project. NestJS GraphQL API serves Next.js web client 
 
 ## Gotchas
 
-- `api/schema.gql` generated on API boot, committed. After API schema change: boot API, then `pnpm codegen` in `web/`. Commit both.
+- GraphQL source of truth: operations + fragments ONLY in `graphql/operations/*.graphql`. Never write inline operation strings in web or mobile. `cd web && pnpm codegen` validates against `api/schema.gql` and generates `web/src/gql` + `mobile/lib/core/graphql/operations.g.dart` (never edit generated). CI fails on drift. Commit operations + both outputs together.
+- `api/schema.gql` generated on API boot, committed. After API schema change: boot API, then `pnpm codegen` in `web/`.
+- Shared fragments select what BOTH clients parse (Dart `fromJson` requires e.g. `email`, `openTaskCount`). Web `Login` must never select `accessToken`; mobile uses `TokenLogin`.
 - Prisma client generated into `api/src/generated` (gitignored) by `postinstall`. Prisma 7 `migrate dev` no longer regenerates: run `pnpm prisma generate` after every schema edit.
 - Every board/task/comment mutation must publish via `BoardActivity.publish` (api/src/boards/board-activity.ts); clients refetch on-screen data from `boardActivity`. New mutation without publish = clients go stale.
 - Field resolvers use `findUnique` lookups; Prisma batches same-tick `findUnique` calls, so no DataLoader needed.

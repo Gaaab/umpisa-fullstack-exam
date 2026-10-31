@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { alice, renderWithApollo } from "@/test/render";
 import { BoardsView } from "./boards-view";
-import { BoardsQuery, CreateBoardMutation } from "./graphql";
+import { BoardsDocument, CreateBoardDocument } from "@/gql/graphql";
 
 const board = (id: string, name: string, openTaskCount: number) => ({
   __typename: "Board" as const,
@@ -14,7 +14,7 @@ const board = (id: string, name: string, openTaskCount: number) => ({
 });
 
 const boardsMock = (boards: ReturnType<typeof board>[]) => ({
-  request: { query: BoardsQuery },
+  request: { query: BoardsDocument },
   result: { data: { boards } },
 });
 
@@ -45,7 +45,7 @@ describe("BoardsView", () => {
     renderWithApollo(<BoardsView />, [
       boardsMock([board("b1", "Website relaunch", 3)]),
       {
-        request: { query: CreateBoardMutation, variables: { input: { name: "Q4 roadmap" } } },
+        request: { query: CreateBoardDocument, variables: { input: { name: "Q4 roadmap" } } },
         result: { data: { createBoard: board("b9", "Q4 roadmap", 0) } },
       },
     ]);

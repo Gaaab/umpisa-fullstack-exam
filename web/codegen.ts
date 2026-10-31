@@ -2,7 +2,8 @@ import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
   schema: "../api/schema.gql",
-  documents: ["src/**/*.{ts,tsx}", "!src/gql/**"],
+  // Single source of truth for both clients' operations.
+  documents: "../graphql/operations/*.graphql",
   generates: {
     "src/gql/": {
       preset: "client",
@@ -14,6 +15,9 @@ const config: CodegenConfig = {
         skipTypeNameForRoot: true,
         scalars: { DateTime: "string" },
       },
+    },
+    "../mobile/lib/core/graphql/operations.g.dart": {
+      plugins: ["./scripts/codegen-dart.cjs"],
     },
   },
 };

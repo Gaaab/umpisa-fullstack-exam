@@ -73,7 +73,7 @@ Both clients talk to one NestJS GraphQL API backed by PostgreSQL.
 - Subscriptions: `boardActivity`, which streams every board, task and comment change to every signed-in client; and `taskAssigned`, which reaches only the new assignee and only when someone else assigns the task.
 - Inputs are trimmed and validated (`class-validator`). Only the board owner can rename or delete a board.
 
-Both clients use the same operation names: Login, Logout, Me, Boards, Board, CreateBoard, UpdateBoard, DeleteBoard, Task, MyTasks, Users, CreateTask, UpdateTask, DeleteTask, AddComment, TaskAssigned, BoardActivity.
+Both clients use one set of operations, defined once in `graphql/operations`: Logout, Me, Users, Boards, Board, CreateBoard, UpdateBoard, DeleteBoard, Task, MyTasks, CreateTask, UpdateTask, DeleteTask, AddComment, TaskAssigned, BoardActivity. Sign-in is the one split: web uses `Login` (token stays in the httpOnly cookie, never selected), and mobile uses `TokenLogin` (selects the token for secure storage).
 
 ## Non-functional
 

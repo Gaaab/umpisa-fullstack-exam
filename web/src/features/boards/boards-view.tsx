@@ -9,15 +9,15 @@ import { Modal } from "@/components/ui/modal";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { BoardNameForm } from "./board-name-form";
-import { BoardsQuery, CreateBoardMutation } from "./graphql";
+import { BoardsDocument, CreateBoardDocument } from "@/gql/graphql";
 
 export function BoardsView() {
-  const { data, error, refetch } = useQuery(BoardsQuery);
+  const { data, error, refetch } = useQuery(BoardsDocument);
   const [creating, setCreating] = useState(false);
-  const [createBoard] = useMutation(CreateBoardMutation, {
+  const [createBoard] = useMutation(CreateBoardDocument, {
     update(cache, { data }) {
       if (!data) return;
-      cache.updateQuery({ query: BoardsQuery }, (prev) =>
+      cache.updateQuery({ query: BoardsDocument }, (prev) =>
         prev ? { boards: [data.createBoard, ...prev.boards] } : prev,
       );
     },

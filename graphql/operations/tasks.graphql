@@ -1,0 +1,47 @@
+query Task($id: ID!) {
+  task(id: $id) {
+    ...TaskFields
+    board {
+      id
+      name
+    }
+    comments {
+      ...CommentFields
+    }
+  }
+}
+
+query MyTasks {
+  myTasks {
+    id
+    title
+    status
+    board {
+      id
+      name
+    }
+  }
+}
+
+mutation CreateTask($input: CreateTaskInput!) {
+  createTask(input: $input) {
+    ...TaskFields
+  }
+}
+
+# Omitted input fields stay unchanged; `assigneeId: null` unassigns.
+mutation UpdateTask($input: UpdateTaskInput!) {
+  updateTask(input: $input) {
+    ...TaskFields
+  }
+}
+
+mutation DeleteTask($id: ID!) {
+  deleteTask(id: $id)
+}
+
+mutation AddComment($input: AddCommentInput!) {
+  addComment(input: $input) {
+    ...CommentFields
+  }
+}

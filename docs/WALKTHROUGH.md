@@ -27,6 +27,7 @@ A checklist for presenting Taskboard in a technical interview: what to prepare, 
 | --- | --- | --- |
 | Layout | `api/`, `web/`, `mobile/`, `docs/` | Three independent apps in plain folders, with no workspace tooling to maintain |
 | Data model | `api/prisma/schema.prisma` | Relations, cascade deletes, indexes on foreign keys |
+| GraphQL contract | `graphql/operations/*.graphql`, `web/codegen.ts`, `web/scripts/codegen-dart.cjs` | One file per area defines every operation. One codegen run validates them against the schema and generates web types and Dart constants. CI fails on drift |
 | GraphQL schema | `api/src/boards/boards.resolver.ts` | Code-first: decorated classes generate `schema.gql`. Resolvers stay thin; services hold the rules |
 | N+1 queries | `api/src/boards/boards.service.ts` | Field resolvers use `findUnique`, which Prisma batches per tick |
 | Validation | `api/src/common/validation.ts`, `api/src/**/*.inputs.ts` | `class-validator` with trimming and readable messages |
@@ -48,7 +49,8 @@ A checklist for presenting Taskboard in a technical interview: what to prepare, 
 - **NestJS code-first:** the TypeScript classes are the schema, so there's one place to change. Web codegen reads the generated schema.
 - **Prisma 7 over the 8 release candidate:** stable beats new for an exam.
 - **Cookie on web, Bearer on mobile:** the web token is never readable by JavaScript, which limits what an XSS attack could steal. On mobile the token lives in the Keychain or Keystore.
-- **Typed codegen on web, hand-written models in Flutter:** both are type-safe, and Flutter skips a `build_runner` step.
+- **One operation source, two generated adapters:** operations are written once in `graphql/operations`. Web gets typed documents, and mobile gets validated Dart constants from a 40-line codegen plugin. Dart models stay hand-written, so there's no `build_runner` step; the shared fragments keep every field both clients parse in one place.
+- **`Login` vs `TokenLogin`:** sharing operations made the token visible as a choice. Web never selects it, so the httpOnly cookie guarantee holds; mobile selects it for secure storage.
 - **Riverpod and go_router over Bloc:** less boilerplate. `select` limits rebuilds.
 - **Optimistic moves:** moving cards is the most frequent action, so it should feel instant. Errors roll back with a message.
 - **Native-only Flutter:** the web client already covers browsers, so Flutter web was cut to keep scope focused.

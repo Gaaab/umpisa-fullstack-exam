@@ -1,0 +1,25 @@
+# Every board, task and comment change; clients refetch what they show.
+subscription BoardActivity {
+  boardActivity {
+    type
+    boardId
+    taskId
+  }
+}
+
+# Only the new assignee receives this, and only when someone else assigns.
+subscription TaskAssigned {
+  taskAssigned {
+    assignedBy {
+      ...UserFields
+    }
+    task {
+      id
+      title
+      status
+      assignee {
+        ...UserFields
+      }
+    }
+  }
+}

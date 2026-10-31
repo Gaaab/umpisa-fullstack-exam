@@ -3,14 +3,14 @@
 import { useSubscription } from "@apollo/client/react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
-import { TaskAssignedSubscription } from "./graphql";
+import { TaskAssignedDocument } from "@/gql/graphql";
 import { browserNotificationsEnabled } from "./preference";
 
 export function TaskAssignedListener() {
   const toast = useToast();
   const router = useRouter();
 
-  useSubscription(TaskAssignedSubscription, {
+  useSubscription(TaskAssignedDocument, {
     onData: ({ client, data }) => {
       if (!data.data) return;
       const { assignedBy, task } = data.data.taskAssigned;

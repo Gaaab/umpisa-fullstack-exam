@@ -6,10 +6,10 @@ import { buttonClasses } from "@/components/ui/button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import { StatusDot } from "@/components/ui/status-pill";
 import { STATUSES, statusLabel } from "@/lib/status";
-import { MyTasksQuery } from "./graphql";
+import { MyTasksDocument } from "@/gql/graphql";
 
 export function MyTasks() {
-  const { data, error, refetch } = useQuery(MyTasksQuery);
+  const { data, error, refetch } = useQuery(MyTasksDocument);
 
   if (error && !data) {
     return (

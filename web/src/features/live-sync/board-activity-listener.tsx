@@ -4,9 +4,8 @@ import { useSubscription } from "@apollo/client/react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
 import { removeBoardFromCache, removeTaskFromCache } from "@/features/boards/cache";
-import { TaskQuery } from "@/features/tasks/graphql";
+import { BoardActivityDocument, TaskDocument } from "@/gql/graphql";
 import { deletingHere } from "./deleting-here";
-import { BoardActivitySubscription } from "./graphql";
 
 const LIVE_QUERIES = new Set(["Boards", "Board", "Task", "MyTasks"]);
 
@@ -14,7 +13,7 @@ export function BoardActivityListener() {
   const router = useRouter();
   const toast = useToast();
 
-  useSubscription(BoardActivitySubscription, {
+  useSubscription(BoardActivityDocument, {
     onData: ({ client, data }) => {
       const event = data.data?.boardActivity;
       if (!event) return;
@@ -26,7 +25,7 @@ export function BoardActivityListener() {
       // Read the visible URL, so routes Next keeps mounted but hidden never react.
       const [, section, id] = window.location.pathname.split("/");
       const openTask =
-        section === "tasks" ? client.cache.readQuery({ query: TaskQuery, variables: { id } }) : null;
+        section === "tasks" ? client.cache.readQuery({ query: TaskDocument, variables: { id } }) : null;
       const boardGone =
         type === "BOARD_DELETED" &&
         ((section === "boards" && id === boardId) || openTask?.task.board.id === boardId);

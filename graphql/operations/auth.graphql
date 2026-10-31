@@ -1,0 +1,34 @@
+# Web: the API sets the token as an httpOnly cookie, so it is never selected.
+mutation Login($input: LoginInput!) {
+  login(input: $input) {
+    user {
+      ...UserFields
+    }
+  }
+}
+
+# Mobile: keeps the token in secure storage and sends it as a Bearer header.
+mutation TokenLogin($input: LoginInput!) {
+  login(input: $input) {
+    accessToken
+    user {
+      ...UserFields
+    }
+  }
+}
+
+mutation Logout {
+  logout
+}
+
+query Me {
+  me {
+    ...UserFields
+  }
+}
+
+query Users {
+  users {
+    ...UserFields
+  }
+}

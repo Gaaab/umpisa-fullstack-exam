@@ -12,19 +12,26 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
 import { removeTaskFromCache } from "@/features/boards/cache";
 import { deletingHere } from "@/features/live-sync/deleting-here";
-import type { TaskFieldsFragment, TaskQuery as TaskData, TaskStatus } from "@/gql/graphql";
+import {
+  DeleteTaskDocument,
+  TaskDocument,
+  UpdateTaskDocument,
+  UsersDocument,
+  type TaskFieldsFragment,
+  type TaskQuery,
+  type TaskStatus,
+} from "@/gql/graphql";
 import { formatDate } from "@/lib/format";
 import { STATUSES, statusLabel } from "@/lib/status";
 import { TASK_TITLE_MAX } from "./add-task-modal";
 import { Comments } from "./comments";
-import { DeleteTaskMutation, TaskQuery, UpdateTaskMutation, UsersQuery } from "./graphql";
 
 export function TaskDetail({ id }: { id: string }) {
-  const { data, error, refetch } = useQuery(TaskQuery, { variables: { id } });
+  const { data, error, refetch } = useQuery(TaskDocument, { variables: { id } });
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
   const toast = useToast();
-  const [deleteTask, { loading: deletePending }] = useMutation(DeleteTaskMutation);
+  const [deleteTask, { loading: deletePending }] = useMutation(DeleteTaskDocument);
 
   if (error && !data) {
     return (
@@ -97,7 +104,7 @@ function formValues(task: TaskFieldsFragment): FormValues {
 const sameValues = (a: FormValues, b: FormValues) =>
   (Object.keys(a) as (keyof FormValues)[]).every((key) => a[key] === b[key]);
 
-type TaskFormProps = { task: TaskData["task"]; onDelete: () => void };
+type TaskFormProps = { task: TaskQuery["task"]; onDelete: () => void };
 
 function TaskForm({ task, onDelete }: TaskFormProps) {
   const server = formValues(task);
@@ -118,8 +125,8 @@ function TaskForm({ task, onDelete }: TaskFormProps) {
   }
   const [titleError, setTitleError] = useState<string>();
   const [error, setError] = useState<string>();
-  const { data: users } = useQuery(UsersQuery, { fetchPolicy: "cache-first" });
-  const [updateTask, { loading }] = useMutation(UpdateTaskMutation);
+  const { data: users } = useQuery(UsersDocument, { fetchPolicy: "cache-first" });
+  const [updateTask, { loading }] = useMutation(UpdateTaskDocument);
   const toast = useToast();
   const dirty = !sameValues(values, saved);
   // Until users load, keep the current assignee selectable.
