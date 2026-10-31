@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:graphql/client.dart';
 
+import '../../core/graphql/operations.g.dart';
 import '../../core/graphql_client.dart';
 import 'user.dart';
 
@@ -16,8 +17,6 @@ class AuthException implements Exception {
   String toString() => message;
 }
 
-const _userFields = 'id name email';
-
 class AuthRepository {
   AuthRepository(this._client);
   final GraphQLClient _client;
@@ -28,11 +27,7 @@ class AuthRepository {
   ) async {
     final result = await _client.mutate(
       MutationOptions(
-        document: gql('''
-          mutation Login(\$input: LoginInput!) {
-            login(input: \$input) { accessToken user { $_userFields } }
-          }
-        '''),
+        document: gql(tokenLoginMutation),
         variables: {
           'input': {'email': email, 'password': password},
         },
@@ -47,7 +42,7 @@ class AuthRepository {
 
   Future<void> logout() async {
     final result = await _client.mutate(
-      MutationOptions(document: gql('mutation Logout { logout }')),
+      MutationOptions(document: gql(logoutMutation)),
     );
     _unwrap(result);
   }
@@ -55,7 +50,7 @@ class AuthRepository {
   Future<User> me() async {
     final result = await _client.query(
       QueryOptions(
-        document: gql('query Me { me { $_userFields } }'),
+        document: gql(meQuery),
         fetchPolicy: FetchPolicy.networkOnly,
       ),
     );

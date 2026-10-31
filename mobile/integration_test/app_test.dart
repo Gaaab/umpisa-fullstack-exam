@@ -9,6 +9,8 @@ import 'package:graphql/client.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:taskboard/app.dart';
 import 'package:taskboard/core/config.dart';
+import 'package:taskboard/core/graphql/operations.g.dart';
+import 'package:taskboard/core/graphql_client.dart';
 import 'package:taskboard/core/token_storage.dart';
 import 'package:taskboard/widgets/status_control.dart';
 import 'package:taskboard/widgets/task_card.dart';
@@ -54,26 +56,15 @@ void main() {
       link: HttpLink(apiUrl),
       cache: GraphQLCache(),
     );
-    final result = await anonymous.mutate(
-      MutationOptions(
-        document: gql(r'''
-          mutation Login($input: LoginInput!) { login(input: $input) { accessToken } }
-        '''),
-        variables: {
-          'input': {'email': email, 'password': 'password123'},
-        },
-      ),
-    );
-    final token = result.data!['login']['accessToken'] as String;
+    final data = await anonymous.mutateData(tokenLoginMutation, {
+      'input': {'email': email, 'password': 'password123'},
+    });
+    final token = data['login']['accessToken'] as String;
     return GraphQLClient(
       link: AuthLink(getToken: () => 'Bearer $token').concat(HttpLink(apiUrl)),
       cache: GraphQLCache(),
     );
   }
-
-  const createTask = r'''
-    mutation CreateTask($input: CreateTaskInput!) { createTask(input: $input) { id } }
-  ''';
 
   testWidgets('Alice runs the full demo while Bob hands her work', (
     tester,
@@ -219,33 +210,17 @@ void main() {
 
     // 8. Bob assigns Alice a task from his phone; she is notified live.
     final bob = await signInAs('bob@example.com');
-    final lookup = await bob.query(
-      QueryOptions(
-        document: gql('query Lookup { users { id email } boards { id name } }'),
-        fetchPolicy: FetchPolicy.networkOnly,
-      ),
-    );
-    final users = (lookup.data!['users'] as List).cast<Map<String, dynamic>>();
-    final boards = (lookup.data!['boards'] as List)
-        .cast<Map<String, dynamic>>();
+    final users = (await bob.queryData(usersQuery))['users'] as List;
+    final boards = (await bob.queryData(boardsQuery))['boards'] as List;
     final boardId = boards.firstWhere((b) => b['name'] == renamed)['id'];
-    Future<Map<String, dynamic>> asBob(
-      String document,
-      Map<String, dynamic> input,
-    ) async {
-      final result = await bob.mutate(
-        MutationOptions(document: gql(document), variables: {'input': input}),
-      );
-      if (result.hasException) throw TestFailure('${result.exception}');
-      return result.data!;
-    }
-
-    await asBob(createTask, {
-      'boardId': boardId,
-      'title': handoff,
-      'assigneeId': users.firstWhere(
-        (u) => u['email'] == 'alice@example.com',
-      )['id'],
+    await bob.mutateData(createTaskMutation, {
+      'input': {
+        'boardId': boardId,
+        'title': handoff,
+        'assigneeId': users.firstWhere(
+          (u) => u['email'] == 'alice@example.com',
+        )['id'],
+      },
     });
     await pumpUntil(tester, find.text('Bob Reyes assigned you "$handoff"'));
     await tapAndWait(
@@ -266,18 +241,14 @@ void main() {
       lane('To do'),
       find.widgetWithText(TaskCard, handoff),
     );
-    final created = await asBob(createTask, {
-      'boardId': boardId,
-      'title': live,
+    final created = await bob.mutateData(createTaskMutation, {
+      'input': {'boardId': boardId, 'title': live},
     });
     final liveId = created['createTask']['id'] as String;
     await pumpUntil(tester, liveCard);
-    await asBob(
-      r'''
-      mutation UpdateTask($input: UpdateTaskInput!) { updateTask(input: $input) { id } }
-    ''',
-      {'id': liveId, 'status': 'IN_PROGRESS'},
-    );
+    await bob.mutateData(updateTaskMutation, {
+      'input': {'id': liveId, 'status': 'IN_PROGRESS'},
+    });
     await pumpUntil(tester, liveCard, gone: true);
     await tapAndWait(tester, lane('In progress'), liveCard);
     await tapAndWait(
@@ -285,20 +256,12 @@ void main() {
       liveCard,
       find.widgetWithText(TextFormField, live),
     );
-    await asBob(
-      r'''
-      mutation AddComment($input: AddCommentInput!) { addComment(input: $input) { id } }
-    ''',
-      {'taskId': liveId, 'body': liveComment},
-    );
+    await bob.mutateData(addCommentMutation, {
+      'input': {'taskId': liveId, 'body': liveComment},
+    });
     await pumpUntil(tester, find.text(liveComment));
     // Bob deletes it; Alice's open task closes back to the board.
-    await bob.mutate(
-      MutationOptions(
-        document: gql(r'mutation DeleteTask($id: ID!) { deleteTask(id: $id) }'),
-        variables: {'id': liveId},
-      ),
-    );
+    await bob.mutateData(deleteTaskMutation, {'id': liveId});
     await pumpUntil(tester, find.text('This task was deleted'));
     await pumpUntil(tester, find.text(renamed));
     expect(liveCard, findsNothing);

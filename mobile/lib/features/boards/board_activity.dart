@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/graphql/operations.g.dart';
 import '../../core/live_client.dart';
 import '../tasks/tasks_providers.dart';
 import 'boards_providers.dart';
@@ -38,14 +39,10 @@ class BoardEvent {
 }
 
 final boardActivityProvider = StreamProvider.autoDispose<BoardEvent>(
-  (ref) =>
-      liveEvents(
-        ref,
-        'subscription BoardActivity { boardActivity { type boardId taskId } }',
-      ).map(
-        (data) =>
-            BoardEvent.fromJson(data['boardActivity'] as Map<String, dynamic>),
-      ),
+  (ref) => liveEvents(ref, boardActivitySubscription).map(
+    (data) =>
+        BoardEvent.fromJson(data['boardActivity'] as Map<String, dynamic>),
+  ),
 );
 
 /// Refetches whatever [event] touched. Deleted boards and tasks are not

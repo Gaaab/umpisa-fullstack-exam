@@ -29,7 +29,7 @@ final liveClientProvider = FutureProvider.autoDispose<GraphQLClient?>((
   return GraphQLClient(link: link, cache: GraphQLCache());
 });
 
-/// Data of each event a subscription [document] emits over the shared socket.
+/// Event data for [document], streamed over the shared socket.
 Stream<Map<String, dynamic>> liveEvents(Ref ref, String document) async* {
   final client = await ref.watch(liveClientProvider.future);
   if (client == null) return;
