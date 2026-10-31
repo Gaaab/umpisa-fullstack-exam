@@ -71,6 +71,10 @@ void main() {
     );
   }
 
+  const createTask = r'''
+    mutation CreateTask($input: CreateTaskInput!) { createTask(input: $input) { id } }
+  ''';
+
   testWidgets('Alice runs the full demo while Bob hands her work', (
     tester,
   ) async {
@@ -224,22 +228,25 @@ void main() {
     final users = (lookup.data!['users'] as List).cast<Map<String, dynamic>>();
     final boards = (lookup.data!['boards'] as List)
         .cast<Map<String, dynamic>>();
-    await bob.mutate(
-      MutationOptions(
-        document: gql(r'''
-          mutation CreateTask($input: CreateTaskInput!) { createTask(input: $input) { id } }
-        '''),
-        variables: {
-          'input': {
-            'boardId': boards.firstWhere((b) => b['name'] == renamed)['id'],
-            'title': handoff,
-            'assigneeId': users.firstWhere(
-              (u) => u['email'] == 'alice@example.com',
-            )['id'],
-          },
-        },
-      ),
-    );
+    final boardId = boards.firstWhere((b) => b['name'] == renamed)['id'];
+    Future<Map<String, dynamic>> asBob(
+      String document,
+      Map<String, dynamic> input,
+    ) async {
+      final result = await bob.mutate(
+        MutationOptions(document: gql(document), variables: {'input': input}),
+      );
+      if (result.hasException) throw TestFailure('${result.exception}');
+      return result.data!;
+    }
+
+    await asBob(createTask, {
+      'boardId': boardId,
+      'title': handoff,
+      'assigneeId': users.firstWhere(
+        (u) => u['email'] == 'alice@example.com',
+      )['id'],
+    });
     await pumpUntil(tester, find.text('Bob Reyes assigned you "$handoff"'));
     await tapAndWait(
       tester,
@@ -249,10 +256,57 @@ void main() {
     await tester.pageBack();
     await pumpUntil(tester, find.text(renamed));
 
-    // 9. My tasks lists the hand-off.
+    // 9. Bob adds, moves, comments on and deletes a task while Alice
+    // watches; each change shows up live, without pull-to-refresh.
+    final live = 'Live from Bob $stamp';
+    final liveCard = find.widgetWithText(TaskCard, live);
+    final liveComment = 'Bob is on it $stamp';
+    await tapAndWait(
+      tester,
+      lane('To do'),
+      find.widgetWithText(TaskCard, handoff),
+    );
+    final created = await asBob(createTask, {
+      'boardId': boardId,
+      'title': live,
+    });
+    final liveId = created['createTask']['id'] as String;
+    await pumpUntil(tester, liveCard);
+    await asBob(
+      r'''
+      mutation UpdateTask($input: UpdateTaskInput!) { updateTask(input: $input) { id } }
+    ''',
+      {'id': liveId, 'status': 'IN_PROGRESS'},
+    );
+    await pumpUntil(tester, liveCard, gone: true);
+    await tapAndWait(tester, lane('In progress'), liveCard);
+    await tapAndWait(
+      tester,
+      liveCard,
+      find.widgetWithText(TextFormField, live),
+    );
+    await asBob(
+      r'''
+      mutation AddComment($input: AddCommentInput!) { addComment(input: $input) { id } }
+    ''',
+      {'taskId': liveId, 'body': liveComment},
+    );
+    await pumpUntil(tester, find.text(liveComment));
+    // Bob deletes it; Alice's open task closes back to the board.
+    await bob.mutate(
+      MutationOptions(
+        document: gql(r'mutation DeleteTask($id: ID!) { deleteTask(id: $id) }'),
+        variables: {'id': liveId},
+      ),
+    );
+    await pumpUntil(tester, find.text('This task was deleted'));
+    await pumpUntil(tester, find.text(renamed));
+    expect(liveCard, findsNothing);
+
+    // 10. My tasks lists the hand-off.
     await tapAndWait(tester, find.text('My tasks').last, find.text(handoff));
 
-    // 10. Bob's board offers Alice no owner actions.
+    // 11. Bob's board offers Alice no owner actions.
     await tapAndWait(
       tester,
       find.text('Boards').last,
@@ -272,7 +326,7 @@ void main() {
     await tester.pageBack();
     await pumpUntil(tester, find.byTooltip('Account'));
 
-    // 11. Deleting the board removes it and its tasks.
+    // 12. Deleting the board removes it and its tasks.
     await tapAndWait(
       tester,
       find.text(renamed),
@@ -295,7 +349,7 @@ void main() {
     );
     await pumpUntil(tester, find.text(renamed), gone: true);
 
-    // 12. Sign out.
+    // 13. Sign out.
     await tapAndWait(tester, find.byTooltip('Account'), find.text('Sign out'));
     await tapAndWait(
       tester,

@@ -139,4 +139,51 @@ void main() {
     expect(find.text('Board deleted'), findsOneWidget);
     expect(find.text('Website relaunch'), findsNothing);
   });
+
+  group('live changes from another phone', () {
+    testWidgets('a new task appears on the open board', (tester) async {
+      final api = await pumpApp(tester);
+      await visit(tester, '/boards/b1');
+
+      await api.createTask(boardId: 'b1', title: 'Book the venue');
+      await tester.pumpAndSettle();
+      expect(card('Book the venue'), findsOneWidget);
+      expect(find.text('To do 3', findRichText: true), findsOneWidget);
+    });
+
+    testWidgets('a deleted open board sends the user back to boards', (
+      tester,
+    ) async {
+      final api = await pumpApp(tester);
+      await tester.tap(find.text('Website relaunch'));
+      await tester.pumpAndSettle();
+
+      await api.deleteBoard('b1');
+      await tester.pumpAndSettle();
+      expect(router(tester).state.matchedLocation, '/boards');
+      expect(find.text('This board was deleted'), findsOneWidget);
+      expect(find.text('Website relaunch'), findsNothing);
+    });
+
+    testWidgets('a board deleted while in another tab says so on return', (
+      tester,
+    ) async {
+      final api = await pumpApp(tester);
+      await tester.tap(find.text('Website relaunch'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('My tasks'));
+      await tester.pumpAndSettle();
+
+      await api.deleteBoard('b1');
+      await tester.pumpAndSettle();
+      expect(router(tester).state.matchedLocation, '/my-tasks');
+
+      await tester.tap(find.text('Boards').last);
+      await tester.pumpAndSettle();
+      expect(find.text('This board was deleted.'), findsOneWidget);
+      await tester.tap(find.text('Back to boards'));
+      await tester.pumpAndSettle();
+      expect(router(tester).state.matchedLocation, '/boards');
+    });
+  });
 }

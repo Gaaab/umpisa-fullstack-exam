@@ -11,6 +11,7 @@ import 'package:taskboard/core/token_storage.dart';
 import 'package:taskboard/features/auth/auth_repository.dart';
 import 'package:taskboard/features/auth/user.dart';
 import 'package:taskboard/features/boards/board.dart';
+import 'package:taskboard/features/boards/board_activity.dart';
 import 'package:taskboard/features/boards/boards_repository.dart';
 import 'package:taskboard/features/tasks/task.dart';
 import 'package:taskboard/features/tasks/task_assigned.dart';
@@ -49,7 +50,9 @@ class FakeAuthRepository implements AuthRepository {
   Future<User> me() async => alice;
 }
 
-/// In-memory API behind both repositories, signed in as [alice].
+/// In-memory API behind both repositories, signed in as [alice]. Like the
+/// real server it announces every change on [events]; tests call its methods
+/// directly to act as a teammate on another phone.
 class FakeApi implements BoardsRepository, TasksRepository {
   FakeApi({List<Board>? boards, List<Task>? tasks})
     : _boards = boards ?? [websiteBoard, mobileBoard],
@@ -97,6 +100,7 @@ class FakeApi implements BoardsRepository, TasksRepository {
 
   final List<Board> _boards;
   final List<Task> tasks;
+  final events = StreamController<BoardEvent>.broadcast();
 
   /// When set, task updates wait for it. Updates to [rejectedTasks] fail.
   Completer<void>? holdUpdates;
@@ -144,12 +148,14 @@ class FakeApi implements BoardsRepository, TasksRepository {
       openTaskCount: 0,
     );
     _boards.insert(0, board);
+    events.add(BoardEvent(BoardEventType.boardCreated, board.id));
     return board;
   }
 
   @override
   Future<Board> updateBoard(String id, String name) async {
     final index = _boards.indexWhere((board) => board.id == id);
+    events.add(BoardEvent(BoardEventType.boardUpdated, id));
     return _boards[index] = _boards[index].copyWith(name: name);
   }
 
@@ -157,6 +163,7 @@ class FakeApi implements BoardsRepository, TasksRepository {
   Future<void> deleteBoard(String id) async {
     _boards.removeWhere((board) => board.id == id);
     tasks.removeWhere((task) => task.boardId == id);
+    events.add(BoardEvent(BoardEventType.boardDeleted, id));
   }
 
   @override
@@ -187,6 +194,7 @@ class FakeApi implements BoardsRepository, TasksRepository {
       board: board,
     );
     tasks.add(task);
+    events.add(BoardEvent(BoardEventType.taskCreated, boardId, task.id));
     return task;
   }
 
@@ -215,15 +223,23 @@ class FakeApi implements BoardsRepository, TasksRepository {
       updatedAt: DateTime.utc(2026, 10, 3),
     );
     _put(updated);
+    events.add(BoardEvent(BoardEventType.taskUpdated, updated.boardId!, id));
     return updated;
   }
 
   @override
-  Future<void> deleteTask(String id) async =>
-      tasks.removeWhere((task) => task.id == id);
+  Future<void> deleteTask(String id) async {
+    final task = _find(id);
+    tasks.remove(task);
+    events.add(BoardEvent(BoardEventType.taskDeleted, task.boardId!, id));
+  }
 
   @override
-  Future<void> addComment(String taskId, String body) async {
+  Future<void> addComment(
+    String taskId,
+    String body, {
+    User author = alice,
+  }) async {
     final task = _find(taskId);
     _put(
       Task(
@@ -239,7 +255,7 @@ class FakeApi implements BoardsRepository, TasksRepository {
           Comment(
             id: 'c${task.comments.length + 1}',
             body: body,
-            author: alice,
+            author: author,
             createdAt: DateTime.utc(2026, 10, 4, 9),
           ),
         ],
@@ -247,6 +263,7 @@ class FakeApi implements BoardsRepository, TasksRepository {
         updatedAt: task.updatedAt,
       ),
     );
+    events.add(BoardEvent(BoardEventType.commentAdded, task.boardId!, taskId));
   }
 }
 
@@ -273,6 +290,7 @@ Future<FakeApi> pumpApp(
         boardsRepositoryProvider.overrideWithValue(api),
         tasksRepositoryProvider.overrideWithValue(api),
         taskAssignedProvider.overrideWith((ref) => const Stream.empty()),
+        boardActivityProvider.overrideWith((ref) => api!.events.stream),
       ],
       child: const TaskboardApp(),
     ),

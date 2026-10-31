@@ -14,6 +14,7 @@ import '../auth/auth_controller.dart';
 import '../tasks/add_task_form.dart';
 import '../tasks/task.dart';
 import 'board.dart';
+import 'board_activity.dart';
 import 'board_name_form.dart';
 import 'boards_providers.dart';
 
@@ -28,6 +29,10 @@ class BoardScreen extends ConsumerStatefulWidget {
 
 class _BoardScreenState extends ConsumerState<BoardScreen> {
   var _lane = TaskStatus.todo;
+  // Set while this client deletes the board, so its own event is ignored.
+  var _deleting = false;
+  // Deleted elsewhere while this screen was hidden.
+  var _gone = false;
 
   BoardController get _controller =>
       ref.read(boardProvider(widget.id).notifier);
@@ -92,13 +97,29 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     if (confirmed != true || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
+    _deleting = true;
     try {
       await _controller.delete();
       router.go('/boards');
       messenger.showSnackBar(const SnackBar(content: Text('Board deleted')));
     } catch (error) {
+      _deleting = false;
       messenger.showSnackBar(SnackBar(content: Text(error.toString())));
     }
+  }
+
+  /// Someone else deleted this board. Leave if it's on screen; otherwise
+  /// say so when the user comes back to it.
+  void _deletedElsewhere() {
+    if (!TickerMode.valuesOf(context).enabled) {
+      setState(() => _gone = true);
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    context.go('/boards');
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('This board was deleted')));
   }
 
   Future<void> _boardActions(Board board) async {
@@ -115,6 +136,18 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(boardActivityProvider, (_, next) {
+      if (next
+          case AsyncData(
+            value: BoardEvent(
+              type: BoardEventType.boardDeleted,
+              :final boardId,
+            ),
+          )
+          when boardId == widget.id && !_deleting) {
+        _deletedElsewhere();
+      }
+    });
     final board = ref.watch(boardProvider(widget.id));
     final userId = ref.watch(
       authControllerProvider.select((auth) => auth.value?.id),
@@ -122,6 +155,19 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
     return Scaffold(
       body: switch (board) {
+        _ when _gone => LargeTitleView(
+          title: '',
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: EmptyState(
+                message: 'This board was deleted.',
+                actionLabel: 'Back to boards',
+                onAction: () => context.go('/boards'),
+              ),
+            ),
+          ],
+        ),
         AsyncError() => LargeTitleView(
           title: '',
           slivers: [

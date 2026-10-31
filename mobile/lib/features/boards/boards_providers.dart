@@ -22,8 +22,24 @@ class BoardController extends AsyncNotifier<Board> {
   BoardsRepository get _boards => ref.read(boardsRepositoryProvider);
   TasksRepository get _tasks => ref.read(tasksRepositoryProvider);
 
+  // Optimistic statuses by task id. A move stays applied until a fetch that
+  // started after the server confirmed it, so a live refresh racing the
+  // move never snaps the card back.
+  final _moves = <String, TaskStatus>{};
+  final _confirmed = <String>{};
+
   @override
-  Future<Board> build() => ref.watch(boardsRepositoryProvider).board(id);
+  Future<Board> build() async {
+    _moves.removeWhere((taskId, _) => _confirmed.contains(taskId));
+    _confirmed.clear();
+    final board = await ref.watch(boardsRepositoryProvider).board(id);
+    if (_moves.isEmpty) return board;
+    return board.copyWith(
+      tasks: [
+        for (final task in board.tasks) task.copyWith(status: _moves[task.id]),
+      ],
+    );
+  }
 
   Future<void> rename(String name) async {
     final updated = await _boards.updateBoard(id, name);
@@ -47,26 +63,41 @@ class BoardController extends AsyncNotifier<Board> {
       description: description,
       assigneeId: assigneeId,
     );
-    _update((board) => board.copyWith(tasks: [...board.tasks, task]));
+    // A live refresh may have brought the new task in already.
+    _update(
+      (board) => board.tasks.any((t) => t.id == task.id)
+          ? board
+          : board.copyWith(tasks: [...board.tasks, task]),
+    );
     _refreshLists();
   }
 
-  /// Moves the card first, then puts only this card back if the server
-  /// rejects it, so other moves made meanwhile survive.
+  /// Moves the card first. If the server rejects it, only this card goes
+  /// back, unless it has been moved again since.
   Future<void> moveTask(Task task, TaskStatus status) async {
-    _replace(task.copyWith(status: status));
+    _moves[task.id] = status;
+    _confirmed.remove(task.id);
+    _setStatus(task.id, status);
+    bool isLatest() => _moves[task.id] == status;
     try {
       await _tasks.updateTask(task.id, {'status': status.value});
     } catch (_) {
-      _replace(task);
+      if (isLatest()) {
+        _moves.remove(task.id);
+        _setStatus(task.id, task.status);
+      }
       rethrow;
     }
+    if (isLatest()) _confirmed.add(task.id);
     _refreshLists(taskId: task.id);
   }
 
-  void _replace(Task task) => _update(
+  void _setStatus(String taskId, TaskStatus status) => _update(
     (board) => board.copyWith(
-      tasks: [for (final t in board.tasks) t.id == task.id ? task : t],
+      tasks: [
+        for (final t in board.tasks)
+          t.id == taskId ? t.copyWith(status: status) : t,
+      ],
     ),
   );
 

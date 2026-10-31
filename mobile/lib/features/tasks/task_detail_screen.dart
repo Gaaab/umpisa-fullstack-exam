@@ -10,6 +10,7 @@ import '../../widgets/loading_button.dart';
 import '../../widgets/states.dart';
 import '../../widgets/status_control.dart';
 import '../auth/user.dart';
+import '../boards/board_activity.dart';
 import '../boards/boards_providers.dart';
 import 'assignee_field.dart';
 import 'task.dart';
@@ -41,8 +42,8 @@ class TaskDetailScreen extends ConsumerWidget {
   }
 }
 
-/// Keeps its own form state, so refetches (after a comment, say) never
-/// overwrite unsaved edits.
+/// Keeps its own form state, so refetches (after a comment, or a live
+/// change from someone else) never overwrite unsaved edits.
 class _TaskDetail extends ConsumerStatefulWidget {
   const _TaskDetail({required this.task});
 
@@ -63,9 +64,29 @@ class _TaskDetailState extends ConsumerState<_TaskDetail> {
   late User? _assignee = widget.task.assignee;
   bool _saving = false;
   bool _posting = false;
+  // Set while this client deletes the task, so its own event is ignored.
+  bool _deleting = false;
+  // Deleted elsewhere while this screen was hidden.
+  bool _gone = false;
 
   Task get _task => widget.task;
   TasksRepository get _repository => ref.read(tasksRepositoryProvider);
+
+  @override
+  void didUpdateWidget(_TaskDetail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Take changes made elsewhere, but only into fields the user left alone.
+    final before = oldWidget.task;
+    final after = widget.task;
+    _merge(_title, before.title, after.title);
+    _merge(_description, before.description ?? '', after.description ?? '');
+    if (_status == before.status) _status = after.status;
+    if (_assignee?.id == before.assignee?.id) _assignee = after.assignee;
+  }
+
+  void _merge(TextEditingController field, String before, String after) {
+    if (field.text == before && before != after) field.text = after;
+  }
 
   @override
   void dispose() {
@@ -134,6 +155,7 @@ class _TaskDetailState extends ConsumerState<_TaskDetail> {
     if (confirmed != true || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
+    _deleting = true;
     try {
       await _repository.deleteTask(_task.id);
       if (!mounted) return;
@@ -141,8 +163,30 @@ class _TaskDetailState extends ConsumerState<_TaskDetail> {
       router.pop();
       messenger.showSnackBar(const SnackBar(content: Text('Task deleted')));
     } catch (error) {
+      _deleting = false;
       if (mounted) _toast(error.toString());
     }
+  }
+
+  /// Someone else deleted this task or its board. Leave if it's on screen
+  /// (back to the board, or to Boards when the board is gone); otherwise
+  /// say so when the user comes back to it.
+  void _deletedElsewhere({required bool boardGone}) {
+    if (!TickerMode.valuesOf(context).enabled) {
+      setState(() => _gone = true);
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+    final boardId = _task.boardId;
+    if (!boardGone && router.canPop()) {
+      router.pop();
+    } else {
+      router.go(boardGone || boardId == null ? '/boards' : '/boards/$boardId');
+    }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('This task was deleted')));
   }
 
   String _date(DateTime time) =>
@@ -150,6 +194,24 @@ class _TaskDetailState extends ConsumerState<_TaskDetail> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(boardActivityProvider, (_, next) {
+      if (next case AsyncData(:final value) when !_deleting) {
+        final boardGone =
+            value.type == BoardEventType.boardDeleted &&
+            value.boardId == _task.boardId;
+        final taskGone =
+            value.type == BoardEventType.taskDeleted &&
+            value.taskId == _task.id;
+        if (boardGone || taskGone) _deletedElsewhere(boardGone: boardGone);
+      }
+    });
+    if (_gone) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const EmptyState(message: 'This task was deleted.'),
+      );
+    }
+
     final text = Theme.of(context).textTheme;
     final created = _task.createdAt;
     final updated = _task.updatedAt;

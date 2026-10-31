@@ -87,4 +87,28 @@ void main() {
     expect(statusOf('t1'), TaskStatus.todo);
     expect(statusOf('t2'), TaskStatus.inProgress);
   });
+
+  test('a refetch during a move keeps the card moved', () async {
+    final task = await loadTask('t1');
+    final notifier = container.read(boardProvider('b1').notifier);
+    api.holdUpdates = Completer();
+
+    final move = notifier.moveTask(task, TaskStatus.done);
+    container.invalidate(boardProvider('b1'));
+    await container.read(boardProvider('b1').future);
+    // The server still says To do.
+    expect(statusOf('t1'), TaskStatus.done);
+
+    api.holdUpdates!.complete();
+    await move;
+    container.invalidate(boardProvider('b1'));
+    await container.read(boardProvider('b1').future);
+    expect(statusOf('t1'), TaskStatus.done);
+
+    // Once confirmed, later changes from the server show again.
+    await api.updateTask('t1', {'status': TaskStatus.inProgress.value});
+    container.invalidate(boardProvider('b1'));
+    await container.read(boardProvider('b1').future);
+    expect(statusOf('t1'), TaskStatus.inProgress);
+  });
 }

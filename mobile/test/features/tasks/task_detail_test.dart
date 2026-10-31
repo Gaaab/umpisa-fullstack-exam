@@ -99,4 +99,62 @@ void main() {
     expect(find.text('Draft homepage copy'), findsNothing);
     expect(api.tasks.any((task) => task.id == 't1'), isFalse);
   });
+
+  group('live changes from another phone', () {
+    testWidgets('unsaved edits survive while new changes arrive', (
+      tester,
+    ) async {
+      final api = await pumpApp(tester);
+      await visit(tester, '/tasks/t1');
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Title'),
+        'My unsaved title',
+      );
+
+      await api.updateTask('t1', {'description': 'Notes from Bob'});
+      await api.addComment('t1', 'Bob was here', author: bob);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.widgetWithText(TextFormField, 'My unsaved title'),
+        findsOneWidget,
+      );
+      // Untouched fields pick up the change.
+      expect(
+        find.widgetWithText(TextFormField, 'Notes from Bob'),
+        findsOneWidget,
+      );
+      expect(find.text('Bob was here'), findsOneWidget);
+    });
+
+    testWidgets('a deleted task returns to its board', (tester) async {
+      final api = await pumpApp(tester);
+      await tester.tap(find.text('Website relaunch'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Draft homepage copy'));
+      await tester.pumpAndSettle();
+
+      await api.deleteTask('t1');
+      await tester.pumpAndSettle();
+      expect(router(tester).state.matchedLocation, '/boards/b1');
+      expect(find.text('This task was deleted'), findsOneWidget);
+      expect(find.text('Draft homepage copy'), findsNothing);
+    });
+
+    testWidgets('a deleted board takes its open task back to boards', (
+      tester,
+    ) async {
+      final api = await pumpApp(tester);
+      await tester.tap(find.text('Website relaunch'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Draft homepage copy'));
+      await tester.pumpAndSettle();
+
+      await api.deleteBoard('b1');
+      await tester.pumpAndSettle();
+      expect(router(tester).state.matchedLocation, '/boards');
+      expect(find.text('This task was deleted'), findsOneWidget);
+      expect(find.text('This board was deleted'), findsNothing);
+    });
+  });
 }
