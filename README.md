@@ -51,7 +51,10 @@ flutter run --dart-define=API_URL=http://10.0.2.2:4000/graphql
 
 - **Boards (workflow 1):** see every board with its owner and open-task count, create a board, open it as a kanban with three lanes, and rename or delete your own boards.
 - **Tasks (workflow 2):** add a task, then move it between To do, In progress and Done. On web you drag the card or use its Move menu. On iOS you swipe the card or use its action sheet. Moves update instantly and roll back if the server rejects them. Open a task to edit it, assign it, comment on it or delete it. My tasks lists everything assigned to you, grouped by status.
-- **Live notifications:** when someone assigns you a task, you get a toast on web (plus a browser notification if you enabled them and the tab is hidden) or a banner on mobile. This is delivered through a GraphQL subscription over WebSocket.
+- **Live sync:** boards, tasks and comments stay in sync across every open web and mobile client, with no reloads. If someone deletes the board or task you're viewing, you're taken back with a message, and edits you haven't saved are kept.
+- **Live notifications:** when someone assigns you a task, you get a toast on web (plus a browser notification if you enabled them and the tab is hidden) or a banner on mobile.
+
+Both run on GraphQL subscriptions over WebSocket.
 
 | Screen | Web route | Mobile route |
 | --- | --- | --- |
@@ -87,7 +90,9 @@ docs/     Requirements and design spec
   - The mobile app stores the token in the iOS Keychain or Android Keystore and sends `Authorization: Bearer`. A `go_router` redirect guards its routes.
   - The API's `GqlAuthGuard` accepts either.
 - **Data loading.** Nested fields (board owner, task assignee, comments) are resolved with `findUnique` lookups. Prisma batches lookups made in the same tick, so lists don't cause N+1 queries.
-- **Notifications.** Subscriptions authenticate once, when the WebSocket connects: web sends the cookie, mobile sends a Bearer token in `connectionParams`. An event reaches only the new assignee.
+- **Live updates.** Two subscriptions share one authenticated WebSocket per client. Authentication happens once, at connect: web sends the cookie, mobile sends a Bearer token in `connectionParams`.
+  - `boardActivity` streams every change as `{ type, boardId, taskId }`. Clients refetch only what is on screen; they leave a deleted board or task they are viewing and never overwrite unsaved form edits.
+  - `taskAssigned` reaches only the new assignee.
 - **Optimistic UI.** Moving a task updates the board immediately: through Apollo `optimisticResponse` on web, and through local Riverpod state with a haptic tick on iOS. The move is reverted if the mutation fails.
 
 ## Local development
@@ -128,9 +133,9 @@ CI runs the same checks on every push (`.github/workflows/ci.yml`).
 These run against a live stack. Each creates its own data and cleans it up.
 
 ```bash
-cd api && pnpm smoke                       # API: 13 checks incl. live notifications
+cd api && pnpm smoke                       # API: 14 checks incl. live sync and notifications
 cd web && pnpm rehearse                    # Web: 29 browser steps as Alice and Bob, incl. live board sync (needs Chrome)
-cd mobile && flutter test integration_test/app_test.dart -d <simulator-id>   # iOS: full 12-step demo incl. a live hand-off from Bob
+cd mobile && flutter test integration_test/app_test.dart -d <simulator-id>   # iOS: full 13-step demo incl. live sync and a hand-off from Bob
 ```
 
 Set `WEB_URL` or `API_URL` if you changed the ports. See [docs/CHECKLIST.md](docs/CHECKLIST.md) for the full pre-demo checklist.

@@ -78,9 +78,9 @@ The API container applies migrations and runs the seed on every start.
 With the stack running and seeded:
 
 - [ ] CI is green on the latest commit (`gh run list -L 1`)
-- [ ] API: `cd api && pnpm smoke` runs 13 checks, including live notifications and WebSocket auth
+- [ ] API: `cd api && pnpm smoke` runs 14 checks, including live sync, notifications and WebSocket auth
 - [ ] Web: `cd web && WEB_URL=http://localhost:3000 pnpm rehearse` runs 29 browser steps as Alice and Bob, with no console errors
-- [ ] iOS: `cd mobile && flutter test integration_test/app_test.dart -d <simulator id>` runs the whole demo in 12 steps. Alice drives the app; Bob, acting through the API, hands her a task, which must arrive live. Find the id with `xcrun simctl list devices booted`.
+- [ ] iOS: `cd mobile && flutter test integration_test/app_test.dart -d <simulator id>` runs the whole demo in 13 steps. Alice drives the app. Bob acts through the API: he adds, moves, comments on and deletes a task on her open board, and hands her a task. Every change must appear live. Find the id with `xcrun simctl list devices booted`.
 - [ ] Optional: record the iOS run with `xcrun simctl io <simulator id> recordVideo demo.mov` (stop with Ctrl+C)
 - [ ] Unit tests: `pnpm test` in `api/` and `web/`, `flutter test` in `mobile/`
 
@@ -101,6 +101,7 @@ Run it once on web and once on the iOS Simulator.
 - [ ] Open the task, edit the title, Save changes, post a comment.
 - [ ] My tasks groups Bob's work by status.
 - [ ] Bob opens Alice's board and sees no Rename or Delete.
+- [ ] Live sync: with Alice on iOS and Bob on web looking at the same board, a task added, moved or commented on either side appears on the other without a reload.
 - [ ] Delete the task, rename the board, delete the board.
 - [ ] Sign out, and protected pages redirect again.
 - [ ] Narrow the browser to phone width: lanes scroll sideways and the page itself does not.

@@ -33,6 +33,7 @@ Taskboard: technical exam project. NestJS GraphQL API serves Next.js web client 
 
 - `api/schema.gql` generated on API boot, committed. After API schema change: boot API, then `pnpm codegen` in `web/`. Commit both.
 - Prisma client generated into `api/src/generated` (gitignored) by `postinstall`. Prisma 7 `migrate dev` no longer regenerates: run `pnpm prisma generate` after every schema edit.
+- Every board/task/comment mutation must publish via `BoardActivity.publish` (api/src/boards/board-activity.ts); clients refetch on-screen data from `boardActivity`. New mutation without publish = clients go stale.
 - Field resolvers use `findUnique` lookups; Prisma batches same-tick `findUnique` calls, so no DataLoader needed.
 - Subscriptions: `graphql-ws` `onConnect` verifies token (Bearer in `connectionParams` or `token` cookie on upgrade), stores `user` on context. Nest Apollo driver sets `req` to ws context object on subscriptions, so `GqlAuthGuard` checks `user` first.
 - Restarting API: kill leftover `node dist/main` too, else new process hits `EADDRINUSE` and old code keeps serving.

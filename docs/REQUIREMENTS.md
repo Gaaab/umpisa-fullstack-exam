@@ -70,10 +70,10 @@ Both clients talk to one NestJS GraphQL API backed by PostgreSQL.
 
 - Queries: `health`, `me`, `users`, `boards`, `board(id)`, `task(id)`, `myTasks`
 - Mutations: `login`, `logout`, `createBoard`, `updateBoard`, `deleteBoard`, `createTask`, `updateTask`, `deleteTask`, `addComment`
-- Subscription: `taskAssigned`, which reaches only the new assignee and only when someone else assigns the task.
+- Subscriptions: `boardActivity`, which streams every board, task and comment change to every signed-in client; and `taskAssigned`, which reaches only the new assignee and only when someone else assigns the task.
 - Inputs are trimmed and validated (`class-validator`). Only the board owner can rename or delete a board.
 
-Both clients use the same operation names: Login, Logout, Me, Boards, Board, CreateBoard, UpdateBoard, DeleteBoard, Task, MyTasks, Users, CreateTask, UpdateTask, DeleteTask, AddComment, TaskAssigned.
+Both clients use the same operation names: Login, Logout, Me, Boards, Board, CreateBoard, UpdateBoard, DeleteBoard, Task, MyTasks, Users, CreateTask, UpdateTask, DeleteTask, AddComment, TaskAssigned, BoardActivity.
 
 ## Non-functional
 
@@ -97,3 +97,8 @@ Both clients use the same operation names: Login, Logout, Me, Boards, Board, Cre
   - Web shows a toast linking to the task. If I enabled notifications and the tab is in the background, it also shows a browser notification.
   - Mobile shows a banner with a "View" action that opens the task.
   - My tasks refreshes on its own.
+- **N2** When anyone changes a board, task or comment, every open client shows it without a reload.
+  - This covers the Boards list, the board lanes, task detail, comments and My tasks.
+  - If the board or task I am viewing is deleted, I am taken back and told why.
+  - Unsaved edits in an open task form are kept; untouched fields take the new values.
+  - My own changes keep their usual feedback; the live update does not repeat it.
