@@ -6,7 +6,7 @@ A checklist for presenting Taskboard in a technical interview: what to prepare, 
 
 - [ ] Fresh data: `docker compose down -v && docker compose up --build`
 - [ ] CI is green, and `pnpm smoke` (api), `pnpm rehearse` (web) and the iOS integration test all pass
-- [ ] iOS Simulator booted, and `cd mobile && flutter run` shows the sign-in screen
+- [ ] iOS Simulator booted (`xcrun simctl boot "iPhone 17 Pro"`; window in Simulator or Xcode 27's DeviceHub), and `cd mobile && flutter run` shows the sign-in screen
 - [ ] Two browser profiles open, one signed in as Alice and one as Bob
 - [ ] Editor open on the files in the code tour below
 

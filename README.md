@@ -35,9 +35,11 @@ Requires Flutter 3.47 and Xcode. Keep the Docker stack running, then:
 ```bash
 cd mobile
 flutter pub get
-open -a Simulator
-flutter run                     # picks the booted iPhone simulator
+xcrun simctl boot "iPhone 17 Pro"   # any iPhone simulator works
+flutter run                         # runs on the booted simulator
 ```
+
+To see the device window, open Simulator (Xcode 26 and earlier) or DeviceHub (Xcode 27: Xcode > Open Developer Tool).
 
 The app reaches the API at `http://localhost:4000/graphql` by default. On an Android emulator, run:
 
@@ -108,7 +110,7 @@ pnpm codegen                     # after API schema changes
 
 cd mobile
 flutter pub get
-flutter run
+flutter run                      # with a simulator booted (see above)
 ```
 
 ## Tests and checks

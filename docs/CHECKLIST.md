@@ -50,7 +50,7 @@ The API container applies migrations and runs the seed on every start.
 - [ ] `docker compose up -d db`
 - [ ] `cd api && pnpm install && pnpm prisma migrate dev && pnpm db:seed && pnpm start:dev`
 - [ ] `cd web && pnpm install && pnpm dev`
-- [ ] `cd mobile && flutter pub get && open -a Simulator && flutter run`
+- [ ] `cd mobile && flutter pub get && xcrun simctl boot "iPhone 17 Pro" && flutter run`. The device window is Simulator on Xcode 26 and earlier, DeviceHub on Xcode 27.
 
 ## 6. Seed data
 
