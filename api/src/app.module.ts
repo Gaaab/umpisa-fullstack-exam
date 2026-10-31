@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module.js';
 import type { JwtPayload } from './auth/auth.types.js';
 import { bearerToken, cookieToken } from './auth/token.js';
 import { BoardsModule } from './boards/boards.module.js';
+import { PubSubModule } from './common/pub-sub.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { TasksModule } from './tasks/tasks.module.js';
 import { UsersResolver } from './users/users.resolver.js';
@@ -54,6 +55,7 @@ type WsExtra = { request: IncomingMessage; user?: JwtPayload };
       }),
     }),
     PrismaModule,
+    PubSubModule,
     BoardsModule,
     TasksModule,
   ],

@@ -8,12 +8,15 @@ import {
   Query,
   ResolveField,
   Resolver,
+  Subscription,
 } from '@nestjs/graphql';
 import type { JwtPayload } from '../auth/auth.types.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { GqlAuthGuard } from '../auth/gql-auth.guard.js';
 import { Task } from '../tasks/task.model.js';
 import { User } from '../users/user.model.js';
+import { BoardActivity } from './board-activity.js';
+import { BoardEvent } from './board-event.model.js';
 import { CreateBoardInput, UpdateBoardInput } from './board.inputs.js';
 import { Board } from './board.model.js';
 import { BoardsService } from './boards.service.js';
@@ -21,7 +24,10 @@ import { BoardsService } from './boards.service.js';
 @Resolver(() => Board)
 @UseGuards(GqlAuthGuard)
 export class BoardsResolver {
-  constructor(private readonly service: BoardsService) {}
+  constructor(
+    private readonly service: BoardsService,
+    private readonly activity: BoardActivity,
+  ) {}
 
   @Query(() => [Board])
   boards() {
@@ -55,6 +61,12 @@ export class BoardsResolver {
     @Args('id', { type: () => ID }) id: string,
   ) {
     return this.service.remove(user.sub, id);
+  }
+
+  // Every board and task change, so open screens can refetch live.
+  @Subscription(() => BoardEvent)
+  boardActivity() {
+    return this.activity.listen();
   }
 
   @ResolveField(() => User)

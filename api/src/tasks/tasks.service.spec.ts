@@ -1,7 +1,9 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { PubSub } from 'graphql-subscriptions';
 import type { PrismaService } from '../prisma/prisma.service.js';
-import { TASK_ASSIGNED } from './pub-sub.js';
+import type { BoardActivity } from '../boards/board-activity.js';
+import { BoardEventType } from '../boards/board-event.model.js';
+import { TASK_ASSIGNED } from '../common/pub-sub.js';
 import { TasksService } from './tasks.service.js';
 
 describe('TasksService', () => {
@@ -16,13 +18,20 @@ describe('TasksService', () => {
   const prisma = {
     board: { count: vi.fn() },
     user: { count: vi.fn(), findUniqueOrThrow: vi.fn() },
-    task: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+    task: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
     comment: { create: vi.fn() },
   };
   const pubSub = { publish: vi.fn() };
+  const activity = { publish: vi.fn() };
   const service = new TasksService(
     prisma as unknown as PrismaService,
     pubSub as unknown as PubSub,
+    activity as unknown as BoardActivity,
   );
 
   beforeEach(() => {
@@ -89,6 +98,22 @@ describe('TasksService', () => {
         assigneeId: undefined,
       },
     });
+  });
+
+  it('publishes board activity for every task change', async () => {
+    prisma.task.create.mockResolvedValue(task);
+    await service.create('alice', { boardId: 'b1', title: 'Ship' });
+    prisma.task.update.mockResolvedValue(task);
+    await service.update('alice', { id: 't1', status: 'DONE' });
+    prisma.comment.create.mockResolvedValue({ id: 'c1' });
+    await service.addComment('alice', { taskId: 't1', body: 'hi' });
+    await service.remove('t1');
+    expect(activity.publish.mock.calls).toEqual([
+      [BoardEventType.TASK_CREATED, 'b1', 't1'],
+      [BoardEventType.TASK_UPDATED, 'b1', 't1'],
+      [BoardEventType.COMMENT_ADDED, 'b1', 't1'],
+      [BoardEventType.TASK_DELETED, 'b1', 't1'],
+    ]);
   });
 
   it('rejects a comment on a missing task', async () => {

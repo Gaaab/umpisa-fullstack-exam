@@ -36,6 +36,26 @@ async function login(email) {
 const alice = await login('alice@example.com');
 const bob = await login('bob@example.com');
 
+// Bob listens over WebSocket for the whole run, like an open client.
+const ws = createClient({
+  url: WS_URL,
+  webSocketImpl: WebSocket,
+  connectionParams: { authorization: `Bearer ${bob.accessToken}` },
+});
+const activity = [];
+ws.subscribe(
+  { query: 'subscription { boardActivity { type boardId taskId } }' },
+  { next: ({ data }) => activity.push(data.boardActivity), error: () => {}, complete: () => {} },
+);
+const notification = new Promise((resolve) => {
+  ws.subscribe(
+    { query: 'subscription { taskAssigned { task { title } assignedBy { name } } }' },
+    { next: resolve, error: (e) => resolve({ error: String(e) }), complete: () => {} },
+  );
+  setTimeout(() => resolve({ error: 'timeout' }), 8000);
+});
+await new Promise((r) => setTimeout(r, 300));
+
 const boards = await gql('{ boards { name openTaskCount owner { name } } }', {}, alice.accessToken);
 check('seeded boards are listed', boards.data?.boards.length >= 2, JSON.stringify(boards));
 
@@ -54,21 +74,6 @@ const forbidden = await gql(
 );
 check('only the owner can rename', forbidden.errors?.[0].extensions.code === 'FORBIDDEN');
 
-// Bob listens over WebSocket while Alice assigns him a task.
-const ws = createClient({
-  url: WS_URL,
-  webSocketImpl: WebSocket,
-  connectionParams: { authorization: `Bearer ${bob.accessToken}` },
-});
-const notification = new Promise((resolve) => {
-  ws.subscribe(
-    { query: 'subscription { taskAssigned { task { title } assignedBy { name } } }' },
-    { next: resolve, error: (e) => resolve({ error: String(e) }), complete: () => {} },
-  );
-  setTimeout(() => resolve({ error: 'timeout' }), 5000);
-});
-await new Promise((r) => setTimeout(r, 300));
-
 const task = (
   await gql(
     'mutation($i: CreateTaskInput!) { createTask(input: $i) { id status assignee { name } } }',
@@ -84,7 +89,6 @@ check(
   message.data?.taskAssigned.assignedBy.name === 'Alice Santos',
   JSON.stringify(message),
 );
-await ws.dispose();
 
 const anonymous = createClient({ url: WS_URL, webSocketImpl: WebSocket, lazy: false, retryAttempts: 0, onNonLazyError: () => {} });
 const closeCode = await new Promise((resolve) => {
@@ -119,9 +123,31 @@ check('task detail resolves board and comments', detail.board.name === 'Smoke te
 const users = (await gql('{ users { name } }', {}, bob.accessToken)).data.users;
 check('users are listed', users.length >= 3);
 
+await gql('mutation($id: ID!) { deleteTask(id: $id) }', { id: task.id }, alice.accessToken);
+const second = (
+  await gql(
+    'mutation($i: CreateTaskInput!) { createTask(input: $i) { id } }',
+    { i: { boardId: board.id, title: 'Second smoke task' } },
+    alice.accessToken,
+  )
+).data.createTask;
 await gql('mutation($id: ID!) { deleteBoard(id: $id) }', { id: board.id }, alice.accessToken);
-const gone = await gql('query($id: ID!) { task(id: $id) { id } }', { id: task.id }, alice.accessToken);
+const gone = await gql('query($id: ID!) { task(id: $id) { id } }', { id: second.id }, alice.accessToken);
 check('deleting a board removes its tasks', gone.errors?.[0].message === 'Task not found');
+
+await new Promise((r) => setTimeout(r, 300));
+const seen = activity.filter((e) => e.boardId === board.id).map((e) => e.type);
+const expected = [
+  'BOARD_CREATED',
+  'TASK_CREATED',
+  'TASK_UPDATED',
+  'COMMENT_ADDED',
+  'TASK_DELETED',
+  'TASK_CREATED',
+  'BOARD_DELETED',
+];
+check('every change streams as boardActivity', JSON.stringify(seen) === JSON.stringify(expected), seen.join(', '));
+await ws.dispose();
 
 const anonymousQuery = await gql('{ boards { id } }');
 check('unauthenticated query is rejected', anonymousQuery.errors?.[0].extensions.code === 'UNAUTHENTICATED');

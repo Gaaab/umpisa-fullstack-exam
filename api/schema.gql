@@ -21,6 +21,22 @@ type Board {
   tasks: [Task!]!
 }
 
+type BoardEvent {
+  boardId: ID!
+  taskId: ID
+  type: BoardEventType!
+}
+
+enum BoardEventType {
+  BOARD_CREATED
+  BOARD_DELETED
+  BOARD_UPDATED
+  COMMENT_ADDED
+  TASK_CREATED
+  TASK_DELETED
+  TASK_UPDATED
+}
+
 type Comment {
   author: User!
   body: String!
@@ -72,6 +88,7 @@ type Query {
 }
 
 type Subscription {
+  boardActivity: BoardEvent!
   taskAssigned: TaskAssignment!
 }
 

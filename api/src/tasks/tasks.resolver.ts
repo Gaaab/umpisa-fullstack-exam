@@ -15,7 +15,7 @@ import { CurrentUser } from '../auth/current-user.decorator.js';
 import { GqlAuthGuard } from '../auth/gql-auth.guard.js';
 import { Board } from '../boards/board.model.js';
 import { User } from '../users/user.model.js';
-import { PUB_SUB, TASK_ASSIGNED } from './pub-sub.js';
+import { PUB_SUB, TASK_ASSIGNED } from '../common/pub-sub.js';
 import {
   AddCommentInput,
   CreateTaskInput,

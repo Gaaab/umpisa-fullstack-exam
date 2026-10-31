@@ -5,8 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
+import { BoardActivity } from '../boards/board-activity.js';
+import { BoardEventType } from '../boards/board-event.model.js';
+import { PUB_SUB, TASK_ASSIGNED } from '../common/pub-sub.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { PUB_SUB, TASK_ASSIGNED } from './pub-sub.js';
 import type {
   AddCommentInput,
   CreateTaskInput,
@@ -19,6 +21,7 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    private readonly activity: BoardActivity,
   ) {}
 
   async findOne(id: string) {
@@ -47,6 +50,11 @@ export class TasksService {
         assigneeId: input.assigneeId ?? null,
       },
     });
+    await this.activity.publish(
+      BoardEventType.TASK_CREATED,
+      task.boardId,
+      task.id,
+    );
     await this.notifyAssignee(task, actorId, null);
     return task;
   }
@@ -66,21 +74,33 @@ export class TasksService {
         assigneeId: input.assigneeId,
       },
     });
+    await this.activity.publish(
+      BoardEventType.TASK_UPDATED,
+      task.boardId,
+      task.id,
+    );
     await this.notifyAssignee(task, actorId, before.assigneeId);
     return task;
   }
 
   async remove(id: string) {
-    await this.findOne(id);
+    const task = await this.findOne(id);
     await this.prisma.task.delete({ where: { id } });
+    await this.activity.publish(BoardEventType.TASK_DELETED, task.boardId, id);
     return id;
   }
 
   async addComment(authorId: string, input: AddCommentInput) {
-    await this.findOne(input.taskId);
-    return this.prisma.comment.create({
+    const task = await this.findOne(input.taskId);
+    const comment = await this.prisma.comment.create({
       data: { taskId: input.taskId, body: input.body, authorId },
     });
+    await this.activity.publish(
+      BoardEventType.COMMENT_ADDED,
+      task.boardId,
+      task.id,
+    );
+    return comment;
   }
 
   // Prisma batches same-tick findUnique calls, so per-task lookups avoid N+1.

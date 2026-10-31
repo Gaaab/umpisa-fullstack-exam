@@ -5,11 +5,16 @@ import {
 } from '@nestjs/common';
 import { TaskStatus } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { BoardActivity } from './board-activity.js';
+import { BoardEventType } from './board-event.model.js';
 import type { Board } from './board.model.js';
 
 @Injectable()
 export class BoardsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly activity: BoardActivity,
+  ) {}
 
   findAll() {
     return this.prisma.board.findMany({ orderBy: { createdAt: 'desc' } });
@@ -21,18 +26,26 @@ export class BoardsService {
     return board;
   }
 
-  create(ownerId: string, name: string) {
-    return this.prisma.board.create({ data: { name, ownerId } });
+  async create(ownerId: string, name: string) {
+    const board = await this.prisma.board.create({ data: { name, ownerId } });
+    await this.activity.publish(BoardEventType.BOARD_CREATED, board.id);
+    return board;
   }
 
   async update(userId: string, id: string, name: string) {
     await this.findOwned(userId, id);
-    return this.prisma.board.update({ where: { id }, data: { name } });
+    const board = await this.prisma.board.update({
+      where: { id },
+      data: { name },
+    });
+    await this.activity.publish(BoardEventType.BOARD_UPDATED, id);
+    return board;
   }
 
   async remove(userId: string, id: string) {
     await this.findOwned(userId, id);
     await this.prisma.board.delete({ where: { id } });
+    await this.activity.publish(BoardEventType.BOARD_DELETED, id);
     return id;
   }
 
