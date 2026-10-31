@@ -10,19 +10,14 @@ import { ConfirmModal } from "@/components/ui/modal";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { StatusPill } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
-import { BoardQuery } from "@/features/boards/graphql";
-import type { TaskQuery as TaskData, TaskStatus } from "@/gql/graphql";
+import { removeTaskFromCache } from "@/features/boards/cache";
+import { deletingHere } from "@/features/live-sync/deleting-here";
+import type { TaskFieldsFragment, TaskQuery as TaskData, TaskStatus } from "@/gql/graphql";
 import { formatDate } from "@/lib/format";
 import { STATUSES, statusLabel } from "@/lib/status";
 import { TASK_TITLE_MAX } from "./add-task-modal";
 import { Comments } from "./comments";
-import {
-  DeleteTaskMutation,
-  MyTasksQuery,
-  TaskQuery,
-  UpdateTaskMutation,
-  UsersQuery,
-} from "./graphql";
+import { DeleteTaskMutation, TaskQuery, UpdateTaskMutation, UsersQuery } from "./graphql";
 
 export function TaskDetail({ id }: { id: string }) {
   const { data, error, refetch } = useQuery(TaskQuery, { variables: { id } });
@@ -44,25 +39,17 @@ export function TaskDetail({ id }: { id: string }) {
   const { task } = data;
 
   async function remove() {
+    deletingHere.add(id);
     try {
       await deleteTask({
         variables: { id },
-        // Drop list entries instead of evicting, so this page doesn't refetch a deleted task.
-        update(cache) {
-          cache.updateQuery({ query: BoardQuery, variables: { id: task.board.id } }, (prev) =>
-            prev
-              ? { board: { ...prev.board, tasks: prev.board.tasks.filter((t) => t.id !== id) } }
-              : prev,
-          );
-          cache.updateQuery({ query: MyTasksQuery }, (prev) =>
-            prev ? { myTasks: prev.myTasks.filter((t) => t.id !== id) } : prev,
-          );
-        },
+        update: (cache) => removeTaskFromCache(cache, id, task.board.id),
       });
       setDeleting(false);
       toast("Task deleted");
       router.push(`/boards/${task.board.id}`);
     } catch {
+      deletingHere.delete(id);
       toast("Couldn't delete the task. Try again.", { tone: "error" });
     }
   }
@@ -80,8 +67,7 @@ export function TaskDetail({ id }: { id: string }) {
         <StatusPill status={task.status} />
       </div>
       <div className="grid gap-10 md:grid-cols-[minmax(0,1fr)_17rem] md:gap-x-12">
-        {/* Remount after each save so the form starts from the saved values. */}
-        <TaskForm key={task.updatedAt} task={task} onDelete={() => setDeleting(true)} />
+        <TaskForm task={task} onDelete={() => setDeleting(true)} />
         <Comments taskId={task.id} comments={task.comments} />
       </div>
       <ConfirmModal
@@ -97,28 +83,49 @@ export function TaskDetail({ id }: { id: string }) {
   );
 }
 
-type TaskFormProps = { task: TaskData["task"]; onDelete: () => void };
+type FormValues = { title: string; description: string; status: TaskStatus; assigneeId: string };
 
-function TaskForm({ task, onDelete }: TaskFormProps) {
-  const saved = {
+function formValues(task: TaskFieldsFragment): FormValues {
+  return {
     title: task.title,
     description: task.description ?? "",
     status: task.status,
     assigneeId: task.assignee?.id ?? "",
   };
-  const [values, setValues] = useState(saved);
+}
+
+const sameValues = (a: FormValues, b: FormValues) =>
+  (Object.keys(a) as (keyof FormValues)[]).every((key) => a[key] === b[key]);
+
+type TaskFormProps = { task: TaskData["task"]; onDelete: () => void };
+
+function TaskForm({ task, onDelete }: TaskFormProps) {
+  const server = formValues(task);
+  // `saved` is the server copy the edits started from.
+  const [saved, setSaved] = useState(server);
+  const [values, setValues] = useState(server);
+  // A live update refreshes untouched fields; fields being edited keep what was typed.
+  if (!sameValues(server, saved)) {
+    const pick = <K extends keyof FormValues>(key: K) =>
+      values[key] === saved[key] ? server[key] : values[key];
+    setValues({
+      title: pick("title"),
+      description: pick("description"),
+      status: pick("status"),
+      assigneeId: pick("assigneeId"),
+    });
+    setSaved(server);
+  }
   const [titleError, setTitleError] = useState<string>();
   const [error, setError] = useState<string>();
   const { data: users } = useQuery(UsersQuery, { fetchPolicy: "cache-first" });
   const [updateTask, { loading }] = useMutation(UpdateTaskMutation);
   const toast = useToast();
-  const dirty = (Object.keys(saved) as (keyof typeof saved)[]).some(
-    (key) => values[key] !== saved[key],
-  );
+  const dirty = !sameValues(values, saved);
   // Until users load, keep the current assignee selectable.
   const people = users?.users ?? (task.assignee ? [task.assignee] : []);
 
-  function set(field: keyof typeof saved) {
+  function set(field: keyof FormValues) {
     return (event: { target: { value: string } }) =>
       setValues((current) => ({ ...current, [field]: event.target.value }));
   }
@@ -130,7 +137,7 @@ function TaskForm({ task, onDelete }: TaskFormProps) {
     if (!title) return;
     setError(undefined);
     try {
-      await updateTask({
+      const { data } = await updateTask({
         variables: {
           input: {
             id: task.id,
@@ -146,6 +153,11 @@ function TaskForm({ task, onDelete }: TaskFormProps) {
           }
         },
       });
+      // Start clean from what the server stored (it trims text).
+      if (data) {
+        setSaved(formValues(data.updateTask));
+        setValues(formValues(data.updateTask));
+      }
       toast("Changes saved");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save the task. Try again.");

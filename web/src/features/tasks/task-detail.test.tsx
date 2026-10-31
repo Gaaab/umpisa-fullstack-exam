@@ -1,3 +1,4 @@
+import { useApolloClient } from "@apollo/client/react";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -15,26 +16,26 @@ const comment = (id: string, body: string, author: typeof alice) => ({
   author,
 });
 
+const task = {
+  __typename: "Task",
+  id: "t1",
+  title: "Write launch copy",
+  description: "Hero and pricing sections",
+  status: "TODO",
+  createdAt: "2026-10-27T09:00:00.000Z",
+  updatedAt: "2026-10-28T09:00:00.000Z",
+  assignee: bob,
+  board: { __typename: "Board", id: "b1", name: "Website relaunch" },
+  comments: [comment("c1", "Draft is in the doc", bob)],
+};
+
+const taskMock = (data: typeof task) => ({
+  request: { query: TaskQuery, variables: { id: "t1" } },
+  result: { data: { task: data } },
+});
+
 const mocks = [
-  {
-    request: { query: TaskQuery, variables: { id: "t1" } },
-    result: {
-      data: {
-        task: {
-          __typename: "Task",
-          id: "t1",
-          title: "Write launch copy",
-          description: "Hero and pricing sections",
-          status: "TODO",
-          createdAt: "2026-10-27T09:00:00.000Z",
-          updatedAt: "2026-10-28T09:00:00.000Z",
-          assignee: bob,
-          board: { __typename: "Board", id: "b1", name: "Website relaunch" },
-          comments: [comment("c1", "Draft is in the doc", bob)],
-        },
-      },
-    },
-  },
+  taskMock(task),
   { request: { query: UsersQuery }, result: { data: { users: [alice, bob] } } },
   {
     request: {
@@ -66,5 +67,29 @@ describe("TaskDetail", () => {
     ]);
     expect(items[1]).toHaveTextContent("Alice Santos");
     expect(screen.getByLabelText("Add a comment")).toHaveValue("");
+  });
+
+  it("keeps unsaved edits when the task changes elsewhere", async () => {
+    const user = userEvent.setup();
+    function LiveRefetch() {
+      const client = useApolloClient();
+      return <button onClick={() => client.refetchQueries({ include: ["Task"] })}>Refetch</button>;
+    }
+    renderWithApollo(
+      <>
+        <TaskDetail id="t1" />
+        <LiveRefetch />
+      </>,
+      [...mocks, taskMock({ ...task, status: "DONE", updatedAt: "2026-10-29T09:00:00.000Z" })],
+    );
+
+    const title = await screen.findByLabelText("Title");
+    await user.type(title, " today");
+    await user.click(screen.getByRole("button", { name: "Refetch" }));
+
+    // The untouched status follows the server; the edited title is kept.
+    await waitFor(() => expect(screen.getByLabelText("Status")).toHaveValue("DONE"));
+    expect(title).toHaveValue("Write launch copy today");
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   });
 });

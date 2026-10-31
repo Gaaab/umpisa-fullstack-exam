@@ -129,7 +129,7 @@ These run against a live stack. Each creates its own data and cleans it up.
 
 ```bash
 cd api && pnpm smoke                       # API: 13 checks incl. live notifications
-cd web && pnpm rehearse                    # Web: 21 browser steps as Alice and Bob (needs Chrome)
+cd web && pnpm rehearse                    # Web: 29 browser steps as Alice and Bob, incl. live board sync (needs Chrome)
 cd mobile && flutter test integration_test/app_test.dart -d <simulator-id>   # iOS: full 12-step demo incl. a live hand-off from Bob
 ```
 

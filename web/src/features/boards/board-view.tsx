@@ -9,13 +9,14 @@ import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { MeQuery } from "@/features/auth/graphql";
 import type { TaskStatus } from "@/gql/graphql";
+import { deletingHere } from "@/features/live-sync/deleting-here";
 import { AddTaskModal } from "@/features/tasks/add-task-modal";
-import { MyTasksQuery } from "@/features/tasks/graphql";
 import { TaskCard } from "@/features/tasks/task-card";
 import { useMoveTask } from "@/features/tasks/use-move-task";
 import { STATUSES } from "@/lib/status";
 import { BoardNameForm } from "./board-name-form";
-import { BoardQuery, BoardsQuery, DeleteBoardMutation, UpdateBoardMutation } from "./graphql";
+import { removeBoardFromCache } from "./cache";
+import { BoardQuery, DeleteBoardMutation, UpdateBoardMutation } from "./graphql";
 import { Lane } from "./lane";
 
 type Dialog = "rename" | "delete" | "add-task" | null;
@@ -29,15 +30,7 @@ export function BoardView({ id }: { id: string }) {
   const toast = useToast();
   const [renameBoard] = useMutation(UpdateBoardMutation);
   const [deleteBoard, { loading: deleting }] = useMutation(DeleteBoardMutation, {
-    // Drop list entries instead of evicting, so this page doesn't refetch a deleted board.
-    update(cache) {
-      cache.updateQuery({ query: BoardsQuery }, (prev) =>
-        prev ? { boards: prev.boards.filter((board) => board.id !== id) } : prev,
-      );
-      cache.updateQuery({ query: MyTasksQuery }, (prev) =>
-        prev ? { myTasks: prev.myTasks.filter((task) => task.board.id !== id) } : prev,
-      );
-    },
+    update: (cache) => removeBoardFromCache(cache, id),
   });
 
   if (error && !data) {
@@ -62,12 +55,14 @@ export function BoardView({ id }: { id: string }) {
   }
 
   async function remove() {
+    deletingHere.add(id);
     try {
       await deleteBoard({ variables: { id } });
       close();
       toast("Board deleted");
       router.push("/boards");
     } catch {
+      deletingHere.delete(id);
       toast("Couldn't delete the board. Try again.", { tone: "error" });
     }
   }

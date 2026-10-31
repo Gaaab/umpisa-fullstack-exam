@@ -6,6 +6,8 @@ import { chromium } from "playwright-core";
 const WEB_URL = process.env.WEB_URL ?? "http://localhost:3000";
 const BOARD = `Rehearsal ${Date.now() % 10000}`;
 const TASK = "Rehearse the demo";
+const LIVE_TASK = "Watch it sync";
+const LIVE = { timeout: 5000 };
 const results = [];
 const consoleErrors = new Set();
 
@@ -87,6 +89,25 @@ await step("Bob gets the live assignment toast", () =>
   waitForText(bob, `Alice Santos assigned you "${TASK}"`),
 );
 await step("Bob's My tasks shows the new task", () => waitForText(bob, TASK));
+await step("Bob opens Alice's board", async () => {
+  await bob.getByRole("link", { name: "Boards", exact: true }).click();
+  await bob.waitForURL(/\/boards$/);
+  // Anchored, so Bob's My tasks row (task title, then board name) can't match.
+  await bob.getByRole("link", { name: new RegExp(`^${BOARD}`) }).click();
+  await bob.waitForURL("**/boards/*");
+  await lane(bob, "To do").getByText(TASK).waitFor();
+});
+await step("live: Alice adds a task and it appears in Bob's lane", async () => {
+  await alice.getByRole("button", { name: "+ Add task" }).click();
+  await alice.getByLabel("Title").fill(LIVE_TASK);
+  await alice.getByRole("dialog").getByRole("button", { name: "Add task" }).click();
+  await lane(bob, "To do").getByText(LIVE_TASK).waitFor(LIVE);
+});
+await step("live: Alice moves it and it moves for Bob", async () => {
+  await alice.getByRole("button", { name: `Move ${LIVE_TASK}` }).click();
+  await alice.getByRole("button", { name: "Move to Done" }).click();
+  await lane(bob, "Done").getByText(LIVE_TASK).waitFor(LIVE);
+});
 await step("Move menu moves the card to In progress", async () => {
   await alice.getByRole("button", { name: `Move ${TASK}` }).click();
   await alice.getByRole("button", { name: "Move to In progress" }).click();
@@ -107,13 +128,19 @@ await step("task detail saves changes", async () => {
   await alice.getByRole("button", { name: "Save changes" }).click();
   await waitForText(alice, "Changes saved");
 });
+await step("Bob opens the task Alice is editing", async () => {
+  await bob.getByRole("link", { name: `${TASK} today` }).click(LIVE);
+  await bob.waitForURL("**/tasks/*");
+});
 await step("comment posts", async () => {
   await alice.getByLabel("Add a comment").fill("Ready for the walkthrough.");
   await alice.getByRole("button", { name: "Post comment" }).click();
   await waitForText(alice, "Ready for the walkthrough.");
 });
+await step("live: Bob's open task shows Alice's comment", () =>
+  bob.getByText("Ready for the walkthrough.").first().waitFor(LIVE),
+);
 await step("Bob sees no owner actions on Alice's board", async () => {
-  await bob.goto(alice.url());
   await bob.getByRole("link", { name: BOARD }).first().click();
   await lane(bob, "Done").waitFor();
   if (await visibleCount(bob.getByRole("button", { name: "Rename" }))) throw new Error("Rename visible");
@@ -125,6 +152,9 @@ await step("delete task returns to its board", async () => {
   await lane(alice, "Done").waitFor();
   if (await visibleCount(alice.getByText(`${TASK} today`))) throw new Error("task still shown");
 });
+await step("live: the deleted task leaves Bob's board", () =>
+  lane(bob, "Done").getByText(`${TASK} today`).waitFor({ state: "detached", ...LIVE }),
+);
 await step("rename board", async () => {
   await alice.getByRole("button", { name: "Rename" }).click();
   await alice.getByLabel("Board name").fill(`${BOARD} v2`);
@@ -137,6 +167,14 @@ await step("delete board returns to the list", async () => {
   await alice.waitForURL(/\/boards$/);
   await waitForText(alice, "Website relaunch");
   if (await visibleCount(alice.getByText(`${BOARD} v2`))) throw new Error("board still listed");
+});
+await step("live: Bob is sent to Boards when the board is deleted", async () => {
+  await bob.waitForURL(/\/boards$/, LIVE);
+  await waitForText(bob, "This board was deleted");
+  if (await visibleCount(bob.getByText(`${BOARD} v2`))) throw new Error("board still listed");
+});
+await step("Alice keeps her own toast, not the live one", async () => {
+  if (await visibleCount(alice.getByText("This board was deleted"))) throw new Error("live toast shown");
 });
 await step("My tasks groups Alice's tasks", async () => {
   await alice.getByRole("link", { name: "My tasks" }).click();

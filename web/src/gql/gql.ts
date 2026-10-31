@@ -22,6 +22,7 @@ type Documents = {
     "\n  mutation CreateBoard($input: CreateBoardInput!) {\n    createBoard(input: $input) {\n      id\n      name\n      openTaskCount\n      owner {\n        id\n        name\n      }\n    }\n  }\n": typeof types.CreateBoardDocument,
     "\n  mutation UpdateBoard($input: UpdateBoardInput!) {\n    updateBoard(input: $input) {\n      id\n      name\n    }\n  }\n": typeof types.UpdateBoardDocument,
     "\n  mutation DeleteBoard($id: ID!) {\n    deleteBoard(id: $id)\n  }\n": typeof types.DeleteBoardDocument,
+    "\n  subscription BoardActivity {\n    boardActivity {\n      type\n      boardId\n      taskId\n    }\n  }\n": typeof types.BoardActivityDocument,
     "\n  subscription TaskAssigned {\n    taskAssigned {\n      assignedBy {\n        id\n        name\n      }\n      task {\n        id\n        title\n        status\n        assignee {\n          id\n          name\n        }\n      }\n    }\n  }\n": typeof types.TaskAssignedDocument,
     "\n  fragment TaskFields on Task {\n    id\n    title\n    description\n    status\n    updatedAt\n    assignee {\n      id\n      name\n    }\n  }\n": typeof types.TaskFieldsFragmentDoc,
     "\n  query Task($id: ID!) {\n    task(id: $id) {\n      ...TaskFields\n      createdAt\n      board {\n        id\n        name\n      }\n      comments {\n        id\n        body\n        createdAt\n        author {\n          id\n          name\n        }\n      }\n    }\n  }\n": typeof types.TaskDocument,
@@ -41,6 +42,7 @@ const documents: Documents = {
     "\n  mutation CreateBoard($input: CreateBoardInput!) {\n    createBoard(input: $input) {\n      id\n      name\n      openTaskCount\n      owner {\n        id\n        name\n      }\n    }\n  }\n": types.CreateBoardDocument,
     "\n  mutation UpdateBoard($input: UpdateBoardInput!) {\n    updateBoard(input: $input) {\n      id\n      name\n    }\n  }\n": types.UpdateBoardDocument,
     "\n  mutation DeleteBoard($id: ID!) {\n    deleteBoard(id: $id)\n  }\n": types.DeleteBoardDocument,
+    "\n  subscription BoardActivity {\n    boardActivity {\n      type\n      boardId\n      taskId\n    }\n  }\n": types.BoardActivityDocument,
     "\n  subscription TaskAssigned {\n    taskAssigned {\n      assignedBy {\n        id\n        name\n      }\n      task {\n        id\n        title\n        status\n        assignee {\n          id\n          name\n        }\n      }\n    }\n  }\n": types.TaskAssignedDocument,
     "\n  fragment TaskFields on Task {\n    id\n    title\n    description\n    status\n    updatedAt\n    assignee {\n      id\n      name\n    }\n  }\n": types.TaskFieldsFragmentDoc,
     "\n  query Task($id: ID!) {\n    task(id: $id) {\n      ...TaskFields\n      createdAt\n      board {\n        id\n        name\n      }\n      comments {\n        id\n        body\n        createdAt\n        author {\n          id\n          name\n        }\n      }\n    }\n  }\n": types.TaskDocument,
@@ -98,6 +100,10 @@ export function graphql(source: "\n  mutation UpdateBoard($input: UpdateBoardInp
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  mutation DeleteBoard($id: ID!) {\n    deleteBoard(id: $id)\n  }\n"): (typeof documents)["\n  mutation DeleteBoard($id: ID!) {\n    deleteBoard(id: $id)\n  }\n"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  subscription BoardActivity {\n    boardActivity {\n      type\n      boardId\n      taskId\n    }\n  }\n"): (typeof documents)["\n  subscription BoardActivity {\n    boardActivity {\n      type\n      boardId\n      taskId\n    }\n  }\n"];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
